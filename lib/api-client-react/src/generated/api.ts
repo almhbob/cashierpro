@@ -17,16 +17,20 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdjustStockBody,
   CreateProductBody,
   CreateSaleBody,
   DailyStats,
   ErrorResponse,
   HealthStatus,
+  InventoryReport,
   ListProductsParams,
   ListSalesParams,
   Product,
+  ProductInsight,
   Sale,
   SaleWithItems,
+  SalesTrendDay,
   UpdateProductBody,
 } from "./api.schemas";
 
@@ -973,3 +977,390 @@ export function useGetDailyStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get sales trends for the last 30 days
+ */
+export const getGetSalesTrendsUrl = () => {
+  return `/api/sales/trends`;
+};
+
+export const getSalesTrends = async (
+  options?: RequestInit,
+): Promise<SalesTrendDay[]> => {
+  return customFetch<SalesTrendDay[]>(getGetSalesTrendsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSalesTrendsQueryKey = () => {
+  return [`/api/sales/trends`] as const;
+};
+
+export const getGetSalesTrendsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSalesTrends>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSalesTrends>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSalesTrendsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSalesTrends>>> = ({
+    signal,
+  }) => getSalesTrends({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSalesTrends>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSalesTrendsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSalesTrends>>
+>;
+export type GetSalesTrendsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get sales trends for the last 30 days
+ */
+
+export function useGetSalesTrends<
+  TData = Awaited<ReturnType<typeof getSalesTrends>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSalesTrends>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSalesTrendsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Full inventory report with stock values
+ */
+export const getGetInventoryReportUrl = () => {
+  return `/api/inventory/report`;
+};
+
+export const getInventoryReport = async (
+  options?: RequestInit,
+): Promise<InventoryReport> => {
+  return customFetch<InventoryReport>(getGetInventoryReportUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetInventoryReportQueryKey = () => {
+  return [`/api/inventory/report`] as const;
+};
+
+export const getGetInventoryReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInventoryReport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInventoryReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInventoryReportQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getInventoryReport>>
+  > = ({ signal }) => getInventoryReport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getInventoryReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetInventoryReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInventoryReport>>
+>;
+export type GetInventoryReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Full inventory report with stock values
+ */
+
+export function useGetInventoryReport<
+  TData = Awaited<ReturnType<typeof getInventoryReport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInventoryReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetInventoryReportQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Product performance insights (fast/slow/dead movers)
+ */
+export const getGetInventoryInsightsUrl = () => {
+  return `/api/inventory/insights`;
+};
+
+export const getInventoryInsights = async (
+  options?: RequestInit,
+): Promise<ProductInsight[]> => {
+  return customFetch<ProductInsight[]>(getGetInventoryInsightsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetInventoryInsightsQueryKey = () => {
+  return [`/api/inventory/insights`] as const;
+};
+
+export const getGetInventoryInsightsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInventoryInsights>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInventoryInsights>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInventoryInsightsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getInventoryInsights>>
+  > = ({ signal }) => getInventoryInsights({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getInventoryInsights>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetInventoryInsightsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInventoryInsights>>
+>;
+export type GetInventoryInsightsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Product performance insights (fast/slow/dead movers)
+ */
+
+export function useGetInventoryInsights<
+  TData = Awaited<ReturnType<typeof getInventoryInsights>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInventoryInsights>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetInventoryInsightsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Products that are low in stock or out of stock
+ */
+export const getGetLowStockProductsUrl = () => {
+  return `/api/inventory/low-stock`;
+};
+
+export const getLowStockProducts = async (
+  options?: RequestInit,
+): Promise<ProductInsight[]> => {
+  return customFetch<ProductInsight[]>(getGetLowStockProductsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLowStockProductsQueryKey = () => {
+  return [`/api/inventory/low-stock`] as const;
+};
+
+export const getGetLowStockProductsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLowStockProducts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLowStockProducts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLowStockProductsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLowStockProducts>>
+  > = ({ signal }) => getLowStockProducts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLowStockProducts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLowStockProductsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLowStockProducts>>
+>;
+export type GetLowStockProductsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Products that are low in stock or out of stock
+ */
+
+export function useGetLowStockProducts<
+  TData = Awaited<ReturnType<typeof getLowStockProducts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLowStockProducts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLowStockProductsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Adjust product stock (inventory count correction)
+ */
+export const getAdjustProductStockUrl = (id: number) => {
+  return `/api/products/${id}/adjust-stock`;
+};
+
+export const adjustProductStock = async (
+  id: number,
+  adjustStockBody: AdjustStockBody,
+  options?: RequestInit,
+): Promise<Product> => {
+  return customFetch<Product>(getAdjustProductStockUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adjustStockBody),
+  });
+};
+
+export const getAdjustProductStockMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adjustProductStock>>,
+    TError,
+    { id: number; data: BodyType<AdjustStockBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adjustProductStock>>,
+  TError,
+  { id: number; data: BodyType<AdjustStockBody> },
+  TContext
+> => {
+  const mutationKey = ["adjustProductStock"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adjustProductStock>>,
+    { id: number; data: BodyType<AdjustStockBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adjustProductStock(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdjustProductStockMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adjustProductStock>>
+>;
+export type AdjustProductStockMutationBody = BodyType<AdjustStockBody>;
+export type AdjustProductStockMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Adjust product stock (inventory count correction)
+ */
+export const useAdjustProductStock = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adjustProductStock>>,
+    TError,
+    { id: number; data: BodyType<AdjustStockBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adjustProductStock>>,
+  TError,
+  { id: number; data: BodyType<AdjustStockBody> },
+  TContext
+> => {
+  return useMutation(getAdjustProductStockMutationOptions(options));
+};

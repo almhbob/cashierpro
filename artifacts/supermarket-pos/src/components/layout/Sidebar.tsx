@@ -3,14 +3,18 @@ import {
   Calculator, 
   PackageSearch, 
   History, 
-  LayoutDashboard 
+  LayoutDashboard,
+  ClipboardList,
+  LineChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "نقاط البيع", icon: Calculator },
   { href: "/products", label: "المنتجات", icon: PackageSearch },
+  { href: "/inventory", label: "المخزون", icon: ClipboardList },
   { href: "/sales", label: "المبيعات", icon: History },
+  { href: "/analytics", label: "التحليلات", icon: LineChart },
   { href: "/dashboard", label: "لوحة القيادة", icon: LayoutDashboard },
 ];
 

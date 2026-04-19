@@ -14,6 +14,8 @@ tags:
     description: Product management
   - name: sales
     description: Sales and transactions
+  - name: inventory
+    description: Inventory management and analytics
 paths:
   /healthz:
     get:
@@ -241,6 +243,95 @@ paths:
               schema:
                 $ref: "#/components/schemas/DailyStats"
 
+  /sales/trends:
+    get:
+      operationId: getSalesTrends
+      tags: [sales]
+      summary: Get sales trends for the last 30 days
+      responses:
+        "200":
+          description: Daily trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SalesTrendDay"
+
+  /inventory/report:
+    get:
+      operationId: getInventoryReport
+      tags: [inventory]
+      summary: Full inventory report with stock values
+      responses:
+        "200":
+          description: Inventory report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryReport"
+
+  /inventory/insights:
+    get:
+      operationId: getInventoryInsights
+      tags: [inventory]
+      summary: Product performance insights (fast/slow/dead movers)
+      responses:
+        "200":
+          description: Product insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductInsight"
+
+  /inventory/low-stock:
+    get:
+      operationId: getLowStockProducts
+      tags: [inventory]
+      summary: Products that are low in stock or out of stock
+      responses:
+        "200":
+          description: Low stock products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductInsight"
+
+  /products/{id}/adjust-stock:
+    post:
+      operationId: adjustProductStock
+      tags: [inventory]
+      summary: Adjust product stock (inventory count correction)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdjustStockBody"
+      responses:
+        "200":
+          description: Stock adjusted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -464,3 +555,116 @@ components:
         - totalRevenue
         - totalItems
         - averageOrderValue
+
+    SalesTrendDay:
+      type: object
+      properties:
+        date:
+          type: string
+        totalSales:
+          type: integer
+        totalRevenue:
+          type: number
+      required:
+        - date
+        - totalSales
+        - totalRevenue
+
+    ProductInsight:
+      type: object
+      properties:
+        id:
+          type: integer
+        barcode:
+          type: string
+        name:
+          type: string
+        nameAr:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        category:
+          type: string
+        unit:
+          type: string
+        totalSoldLast30Days:
+          type: integer
+        totalRevenueLast30Days:
+          type: number
+        salesVelocityPerDay:
+          type: number
+        daysOfStockLeft:
+          type: ["number", "null"]
+        status:
+          type: string
+          enum: [fast, normal, slow, dead, new]
+        stockValue:
+          type: number
+        lastSoldAt:
+          type: ["string", "null"]
+        recommendation:
+          type: string
+      required:
+        - id
+        - barcode
+        - name
+        - nameAr
+        - price
+        - stock
+        - category
+        - unit
+        - totalSoldLast30Days
+        - totalRevenueLast30Days
+        - salesVelocityPerDay
+        - daysOfStockLeft
+        - status
+        - stockValue
+        - lastSoldAt
+        - recommendation
+
+    InventoryReport:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+        totalProducts:
+          type: integer
+        totalStockValue:
+          type: number
+        outOfStock:
+          type: integer
+        lowStock:
+          type: integer
+        fastMovers:
+          type: integer
+        slowMovers:
+          type: integer
+        deadStock:
+          type: integer
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductInsight"
+      required:
+        - generatedAt
+        - totalProducts
+        - totalStockValue
+        - outOfStock
+        - lowStock
+        - fastMovers
+        - slowMovers
+        - deadStock
+        - products
+
+    AdjustStockBody:
+      type: object
+      properties:
+        newStock:
+          type: integer
+        reason:
+          type: string
+      required:
+        - newStock
+        - reason

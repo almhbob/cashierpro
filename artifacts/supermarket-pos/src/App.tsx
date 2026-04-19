@@ -10,6 +10,8 @@ import Products from "@/pages/Products";
 import Sales from "@/pages/Sales";
 import SaleDetail from "@/pages/SaleDetail";
 import Dashboard from "@/pages/Dashboard";
+import Inventory from "@/pages/Inventory";
+import Analytics from "@/pages/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,9 @@ function Router() {
           <Route path="/sales" component={Sales} />
           <Route path="/sales/:id" component={SaleDetail} />
           <Route path="/dashboard" component={Dashboard} />
+          <Route path="/inventory" component={Inventory} />
+          <Route path="/inventory/low-stock" component={Inventory} />
+          <Route path="/analytics" component={Analytics} />
           <Route component={NotFound} />
         </Switch>
       </main>

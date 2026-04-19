@@ -95,6 +95,61 @@ export interface DailyStats {
   averageOrderValue: number;
 }
 
+export interface SalesTrendDay {
+  date: string;
+  totalSales: number;
+  totalRevenue: number;
+}
+
+export type ProductInsightStatus =
+  (typeof ProductInsightStatus)[keyof typeof ProductInsightStatus];
+
+export const ProductInsightStatus = {
+  fast: "fast",
+  normal: "normal",
+  slow: "slow",
+  dead: "dead",
+  new: "new",
+} as const;
+
+export interface ProductInsight {
+  id: number;
+  barcode: string;
+  name: string;
+  nameAr: string;
+  price: number;
+  stock: number;
+  category: string;
+  unit: string;
+  totalSoldLast30Days: number;
+  totalRevenueLast30Days: number;
+  salesVelocityPerDay: number;
+  /** @nullable */
+  daysOfStockLeft: number | null;
+  status: ProductInsightStatus;
+  stockValue: number;
+  /** @nullable */
+  lastSoldAt: string | null;
+  recommendation: string;
+}
+
+export interface InventoryReport {
+  generatedAt: string;
+  totalProducts: number;
+  totalStockValue: number;
+  outOfStock: number;
+  lowStock: number;
+  fastMovers: number;
+  slowMovers: number;
+  deadStock: number;
+  products: ProductInsight[];
+}
+
+export interface AdjustStockBody {
+  newStock: number;
+  reason: string;
+}
+
 export type ListProductsParams = {
   search?: string;
 };

@@ -195,3 +195,122 @@ export const GetDailyStatsResponse = zod.object({
   totalItems: zod.number(),
   averageOrderValue: zod.number(),
 });
+
+/**
+ * @summary Get sales trends for the last 30 days
+ */
+export const GetSalesTrendsResponseItem = zod.object({
+  date: zod.string(),
+  totalSales: zod.number(),
+  totalRevenue: zod.number(),
+});
+export const GetSalesTrendsResponse = zod.array(GetSalesTrendsResponseItem);
+
+/**
+ * @summary Full inventory report with stock values
+ */
+export const GetInventoryReportResponse = zod.object({
+  generatedAt: zod.string(),
+  totalProducts: zod.number(),
+  totalStockValue: zod.number(),
+  outOfStock: zod.number(),
+  lowStock: zod.number(),
+  fastMovers: zod.number(),
+  slowMovers: zod.number(),
+  deadStock: zod.number(),
+  products: zod.array(
+    zod.object({
+      id: zod.number(),
+      barcode: zod.string(),
+      name: zod.string(),
+      nameAr: zod.string(),
+      price: zod.number(),
+      stock: zod.number(),
+      category: zod.string(),
+      unit: zod.string(),
+      totalSoldLast30Days: zod.number(),
+      totalRevenueLast30Days: zod.number(),
+      salesVelocityPerDay: zod.number(),
+      daysOfStockLeft: zod.number().nullable(),
+      status: zod.enum(["fast", "normal", "slow", "dead", "new"]),
+      stockValue: zod.number(),
+      lastSoldAt: zod.string().nullable(),
+      recommendation: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Product performance insights (fast/slow/dead movers)
+ */
+export const GetInventoryInsightsResponseItem = zod.object({
+  id: zod.number(),
+  barcode: zod.string(),
+  name: zod.string(),
+  nameAr: zod.string(),
+  price: zod.number(),
+  stock: zod.number(),
+  category: zod.string(),
+  unit: zod.string(),
+  totalSoldLast30Days: zod.number(),
+  totalRevenueLast30Days: zod.number(),
+  salesVelocityPerDay: zod.number(),
+  daysOfStockLeft: zod.number().nullable(),
+  status: zod.enum(["fast", "normal", "slow", "dead", "new"]),
+  stockValue: zod.number(),
+  lastSoldAt: zod.string().nullable(),
+  recommendation: zod.string(),
+});
+export const GetInventoryInsightsResponse = zod.array(
+  GetInventoryInsightsResponseItem,
+);
+
+/**
+ * @summary Products that are low in stock or out of stock
+ */
+export const GetLowStockProductsResponseItem = zod.object({
+  id: zod.number(),
+  barcode: zod.string(),
+  name: zod.string(),
+  nameAr: zod.string(),
+  price: zod.number(),
+  stock: zod.number(),
+  category: zod.string(),
+  unit: zod.string(),
+  totalSoldLast30Days: zod.number(),
+  totalRevenueLast30Days: zod.number(),
+  salesVelocityPerDay: zod.number(),
+  daysOfStockLeft: zod.number().nullable(),
+  status: zod.enum(["fast", "normal", "slow", "dead", "new"]),
+  stockValue: zod.number(),
+  lastSoldAt: zod.string().nullable(),
+  recommendation: zod.string(),
+});
+export const GetLowStockProductsResponse = zod.array(
+  GetLowStockProductsResponseItem,
+);
+
+/**
+ * @summary Adjust product stock (inventory count correction)
+ */
+export const AdjustProductStockParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdjustProductStockBody = zod.object({
+  newStock: zod.number(),
+  reason: zod.string(),
+});
+
+export const AdjustProductStockResponse = zod.object({
+  id: zod.number(),
+  barcode: zod.string(),
+  name: zod.string(),
+  nameAr: zod.string(),
+  price: zod.number(),
+  stock: zod.number(),
+  category: zod.string(),
+  unit: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});

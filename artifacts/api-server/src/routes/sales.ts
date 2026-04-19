@@ -119,6 +119,25 @@ router.get("/sales/stats/daily", async (_req, res): Promise<void> => {
   res.json({ totalSales, totalRevenue, totalItems, averageOrderValue });
 });
 
+router.get("/sales/trends", async (_req, res): Promise<void> => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+  const trends = await db
+    .select({
+      date: sql<string>`date(${salesTable.createdAt} AT TIME ZONE 'UTC')::text`,
+      totalSales: sql<number>`count(*)::int`,
+      totalRevenue: sql<number>`coalesce(sum(${salesTable.total}), 0)::float`,
+    })
+    .from(salesTable)
+    .where(sql`${salesTable.createdAt} >= ${thirtyDaysAgo}`)
+    .groupBy(sql`date(${salesTable.createdAt} AT TIME ZONE 'UTC')`)
+    .orderBy(sql`date(${salesTable.createdAt} AT TIME ZONE 'UTC')`);
+
+  res.json(trends);
+});
+
 router.get("/sales/:id", async (req, res): Promise<void> => {
   const params = GetSaleParams.safeParse(req.params);
   if (!params.success) {

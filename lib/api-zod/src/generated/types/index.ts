@@ -6,16 +6,21 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./adjustStockBody";
 export * from "./createProductBody";
 export * from "./createSaleBody";
 export * from "./createSaleItemInput";
 export * from "./dailyStats";
 export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./inventoryReport";
 export * from "./listProductsParams";
 export * from "./listSalesParams";
 export * from "./product";
+export * from "./productInsight";
+export * from "./productInsightStatus";
 export * from "./sale";
 export * from "./saleItem";
+export * from "./salesTrendDay";
 export * from "./saleWithItems";
 export * from "./updateProductBody";
