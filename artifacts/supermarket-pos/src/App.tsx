@@ -12,6 +12,7 @@ import SaleDetail from "@/pages/SaleDetail";
 import Dashboard from "@/pages/Dashboard";
 import Inventory from "@/pages/Inventory";
 import Analytics from "@/pages/Analytics";
+import Receive from "@/pages/Receive";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/inventory" component={Inventory} />
           <Route path="/inventory/low-stock" component={Inventory} />
+          <Route path="/receive" component={Receive} />
           <Route path="/analytics" component={Analytics} />
           <Route component={NotFound} />
         </Switch>

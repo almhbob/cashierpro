@@ -301,6 +301,62 @@ paths:
                 items:
                   $ref: "#/components/schemas/ProductInsight"
 
+  /products/{id}/receive-stock:
+    post:
+      operationId: receiveProductStock
+      tags: [inventory]
+      summary: Add received quantity to existing product stock
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiveStockBody"
+      responses:
+        "200":
+          description: Stock updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inventory/receive-batch:
+    post:
+      operationId: receiveBatchStock
+      tags: [inventory]
+      summary: Receive multiple products in one batch (from barcode scanner session)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiveBatchBody"
+      responses:
+        "200":
+          description: Batch received successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceiveBatchResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /products/{id}/adjust-stock:
     post:
       operationId: adjustProductStock
@@ -668,3 +724,83 @@ components:
       required:
         - newStock
         - reason
+
+    ReceiveStockBody:
+      type: object
+      properties:
+        quantity:
+          type: integer
+        notes:
+          type: string
+      required:
+        - quantity
+
+    ReceiveBatchItemInput:
+      type: object
+      properties:
+        productId:
+          type: integer
+        quantity:
+          type: integer
+      required:
+        - productId
+        - quantity
+
+    ReceiveBatchBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReceiveBatchItemInput"
+        notes:
+          type: string
+        supplierName:
+          type: string
+      required:
+        - items
+
+    ReceiveBatchResultItem:
+      type: object
+      properties:
+        productId:
+          type: integer
+        productNameAr:
+          type: string
+        barcode:
+          type: string
+        previousStock:
+          type: integer
+        addedQuantity:
+          type: integer
+        newStock:
+          type: integer
+      required:
+        - productId
+        - productNameAr
+        - barcode
+        - previousStock
+        - addedQuantity
+        - newStock
+
+    ReceiveBatchResult:
+      type: object
+      properties:
+        receivedAt:
+          type: string
+        supplierName:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        totalItemsReceived:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReceiveBatchResultItem"
+      required:
+        - receivedAt
+        - supplierName
+        - notes
+        - totalItemsReceived
+        - items

@@ -150,6 +150,41 @@ export interface AdjustStockBody {
   reason: string;
 }
 
+export interface ReceiveStockBody {
+  quantity: number;
+  notes?: string;
+}
+
+export interface ReceiveBatchItemInput {
+  productId: number;
+  quantity: number;
+}
+
+export interface ReceiveBatchBody {
+  items: ReceiveBatchItemInput[];
+  notes?: string;
+  supplierName?: string;
+}
+
+export interface ReceiveBatchResultItem {
+  productId: number;
+  productNameAr: string;
+  barcode: string;
+  previousStock: number;
+  addedQuantity: number;
+  newStock: number;
+}
+
+export interface ReceiveBatchResult {
+  receivedAt: string;
+  /** @nullable */
+  supplierName: string | null;
+  /** @nullable */
+  notes: string | null;
+  totalItemsReceived: number;
+  items: ReceiveBatchResultItem[];
+}
+
 export type ListProductsParams = {
   search?: string;
 };

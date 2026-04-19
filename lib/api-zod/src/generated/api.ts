@@ -291,6 +291,62 @@ export const GetLowStockProductsResponse = zod.array(
 );
 
 /**
+ * @summary Add received quantity to existing product stock
+ */
+export const ReceiveProductStockParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ReceiveProductStockBody = zod.object({
+  quantity: zod.number(),
+  notes: zod.string().optional(),
+});
+
+export const ReceiveProductStockResponse = zod.object({
+  id: zod.number(),
+  barcode: zod.string(),
+  name: zod.string(),
+  nameAr: zod.string(),
+  price: zod.number(),
+  stock: zod.number(),
+  category: zod.string(),
+  unit: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Receive multiple products in one batch (from barcode scanner session)
+ */
+export const ReceiveBatchStockBody = zod.object({
+  items: zod.array(
+    zod.object({
+      productId: zod.number(),
+      quantity: zod.number(),
+    }),
+  ),
+  notes: zod.string().optional(),
+  supplierName: zod.string().optional(),
+});
+
+export const ReceiveBatchStockResponse = zod.object({
+  receivedAt: zod.string(),
+  supplierName: zod.string().nullable(),
+  notes: zod.string().nullable(),
+  totalItemsReceived: zod.number(),
+  items: zod.array(
+    zod.object({
+      productId: zod.number(),
+      productNameAr: zod.string(),
+      barcode: zod.string(),
+      previousStock: zod.number(),
+      addedQuantity: zod.number(),
+      newStock: zod.number(),
+    }),
+  ),
+});
+
+/**
  * @summary Adjust product stock (inventory count correction)
  */
 export const AdjustProductStockParams = zod.object({

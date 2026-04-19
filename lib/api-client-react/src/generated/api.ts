@@ -28,6 +28,9 @@ import type {
   ListSalesParams,
   Product,
   ProductInsight,
+  ReceiveBatchBody,
+  ReceiveBatchResult,
+  ReceiveStockBody,
   Sale,
   SaleWithItems,
   SalesTrendDay,
@@ -1277,6 +1280,179 @@ export function useGetLowStockProducts<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Add received quantity to existing product stock
+ */
+export const getReceiveProductStockUrl = (id: number) => {
+  return `/api/products/${id}/receive-stock`;
+};
+
+export const receiveProductStock = async (
+  id: number,
+  receiveStockBody: ReceiveStockBody,
+  options?: RequestInit,
+): Promise<Product> => {
+  return customFetch<Product>(getReceiveProductStockUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(receiveStockBody),
+  });
+};
+
+export const getReceiveProductStockMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveProductStock>>,
+    TError,
+    { id: number; data: BodyType<ReceiveStockBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof receiveProductStock>>,
+  TError,
+  { id: number; data: BodyType<ReceiveStockBody> },
+  TContext
+> => {
+  const mutationKey = ["receiveProductStock"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof receiveProductStock>>,
+    { id: number; data: BodyType<ReceiveStockBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return receiveProductStock(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReceiveProductStockMutationResult = NonNullable<
+  Awaited<ReturnType<typeof receiveProductStock>>
+>;
+export type ReceiveProductStockMutationBody = BodyType<ReceiveStockBody>;
+export type ReceiveProductStockMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add received quantity to existing product stock
+ */
+export const useReceiveProductStock = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveProductStock>>,
+    TError,
+    { id: number; data: BodyType<ReceiveStockBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof receiveProductStock>>,
+  TError,
+  { id: number; data: BodyType<ReceiveStockBody> },
+  TContext
+> => {
+  return useMutation(getReceiveProductStockMutationOptions(options));
+};
+
+/**
+ * @summary Receive multiple products in one batch (from barcode scanner session)
+ */
+export const getReceiveBatchStockUrl = () => {
+  return `/api/inventory/receive-batch`;
+};
+
+export const receiveBatchStock = async (
+  receiveBatchBody: ReceiveBatchBody,
+  options?: RequestInit,
+): Promise<ReceiveBatchResult> => {
+  return customFetch<ReceiveBatchResult>(getReceiveBatchStockUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(receiveBatchBody),
+  });
+};
+
+export const getReceiveBatchStockMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveBatchStock>>,
+    TError,
+    { data: BodyType<ReceiveBatchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof receiveBatchStock>>,
+  TError,
+  { data: BodyType<ReceiveBatchBody> },
+  TContext
+> => {
+  const mutationKey = ["receiveBatchStock"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof receiveBatchStock>>,
+    { data: BodyType<ReceiveBatchBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return receiveBatchStock(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReceiveBatchStockMutationResult = NonNullable<
+  Awaited<ReturnType<typeof receiveBatchStock>>
+>;
+export type ReceiveBatchStockMutationBody = BodyType<ReceiveBatchBody>;
+export type ReceiveBatchStockMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Receive multiple products in one batch (from barcode scanner session)
+ */
+export const useReceiveBatchStock = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveBatchStock>>,
+    TError,
+    { data: BodyType<ReceiveBatchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof receiveBatchStock>>,
+  TError,
+  { data: BodyType<ReceiveBatchBody> },
+  TContext
+> => {
+  return useMutation(getReceiveBatchStockMutationOptions(options));
+};
 
 /**
  * @summary Adjust product stock (inventory count correction)

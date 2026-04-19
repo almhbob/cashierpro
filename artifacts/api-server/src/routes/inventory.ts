@@ -1,9 +1,12 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import { db, productsTable, saleItemsTable, salesTable } from "@workspace/db";
 import {
   AdjustProductStockParams,
   AdjustProductStockBody,
+  ReceiveProductStockParams,
+  ReceiveProductStockBody,
+  ReceiveBatchStockBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -134,6 +137,88 @@ router.get("/inventory/report", async (_req, res): Promise<void> => {
     slowMovers,
     deadStock,
     products: insights,
+  });
+});
+
+router.post("/products/:id/receive-stock", async (req, res): Promise<void> => {
+  const params = ReceiveProductStockParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const body = ReceiveProductStockBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [product] = await db
+    .update(productsTable)
+    .set({ stock: sql`${productsTable.stock} + ${body.data.quantity}` })
+    .where(eq(productsTable.id, params.data.id))
+    .returning();
+
+  if (!product) {
+    res.status(404).json({ error: "المنتج غير موجود" });
+    return;
+  }
+
+  res.json(product);
+});
+
+router.post("/inventory/receive-batch", async (req, res): Promise<void> => {
+  const body = ReceiveBatchStockBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const { items, supplierName, notes } = body.data;
+
+  if (!items || items.length === 0) {
+    res.status(400).json({ error: "لا توجد منتجات في قائمة الاستلام" });
+    return;
+  }
+
+  const productIds = items.map((i) => i.productId);
+  const products = await db
+    .select()
+    .from(productsTable)
+    .where(inArray(productsTable.id, productIds));
+
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  const resultItems = [];
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+    if (!product) {
+      res.status(404).json({ error: `المنتج برقم ${item.productId} غير موجود` });
+      return;
+    }
+
+    const [updated] = await db
+      .update(productsTable)
+      .set({ stock: sql`${productsTable.stock} + ${item.quantity}` })
+      .where(eq(productsTable.id, item.productId))
+      .returning();
+
+    resultItems.push({
+      productId: product.id,
+      productNameAr: product.nameAr,
+      barcode: product.barcode,
+      previousStock: product.stock,
+      addedQuantity: item.quantity,
+      newStock: updated.stock,
+    });
+  }
+
+  res.json({
+    receivedAt: new Date().toISOString(),
+    supplierName: supplierName ?? null,
+    notes: notes ?? null,
+    totalItemsReceived: items.reduce((sum, i) => sum + i.quantity, 0),
+    items: resultItems,
   });
 });
 
