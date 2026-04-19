@@ -1,6 +1,8 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import { clerkMiddleware, getAuth } from "@clerk/express";
+import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -25,10 +27,25 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+
+app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", router);
+app.use(clerkMiddleware());
+
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const auth = getAuth(req);
+  const userId = auth?.sessionClaims?.userId || auth?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: "غير مصرح" });
+  }
+  (req as any).userId = userId;
+  next();
+}
+
+app.use("/api", requireAuth, router);
 
 export default app;

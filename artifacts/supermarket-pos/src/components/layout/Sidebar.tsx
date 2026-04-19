@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useUser, useClerk } from "@clerk/react";
 import { 
   Calculator, 
   PackageSearch, 
@@ -6,9 +7,12 @@ import {
   LayoutDashboard,
   ClipboardList,
   LineChart,
-  Truck
+  Truck,
+  LogOut,
+  UserCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
   { href: "/", label: "نقاط البيع", icon: Calculator },
@@ -22,6 +26,12 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "مستخدم"
+    : "...";
 
   return (
     <div className="w-64 border-l bg-card flex flex-col h-[100dvh]">
@@ -51,8 +61,24 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="p-4 border-t text-sm text-center text-muted-foreground">
-        نظام الكاشير © {new Date().getFullYear()}
+      <div className="p-4 border-t space-y-3">
+        <div className="flex items-center gap-2 px-2">
+          <UserCircle2 className="h-8 w-8 text-primary shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground">كاشير</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-red-600 hover:bg-red-50 gap-2"
+          onClick={() => signOut({ redirectUrl: window.location.origin + (import.meta.env.BASE_URL || "/") })}
+        >
+          <LogOut className="h-4 w-4" />
+          <span>تسجيل الخروج</span>
+        </Button>
+        <p className="text-xs text-center text-muted-foreground">نظام الكاشير © {new Date().getFullYear()}</p>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useUser } from "@clerk/react";
 import { 
   useGetProductByBarcode,
   useCreateSale,
@@ -22,8 +23,12 @@ interface CartItem {
 }
 
 export default function Home() {
+  const { user } = useUser();
+  const cashierName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "كاشير"
+    : "كاشير";
+
   const [barcode, setBarcode] = useState("");
-  const [cashierName, setCashierName] = useState(() => localStorage.getItem("cashierName") || "كاشير 1");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [amountPaidStr, setAmountPaidStr] = useState("");
   const [lastReceipt, setLastReceipt] = useState<any>(null);
@@ -31,10 +36,6 @@ export default function Home() {
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    localStorage.setItem("cashierName", cashierName);
-  }, [cashierName]);
 
   // Keep barcode input focused
   useEffect(() => {
@@ -204,11 +205,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-md">
             <UserRound className="h-4 w-4 text-muted-foreground" />
-            <Input 
-              className="h-8 border-none bg-transparent shadow-none w-32 focus-visible:ring-0 p-0" 
-              value={cashierName}
-              onChange={e => setCashierName(e.target.value)}
-            />
+            <span className="text-sm font-medium text-foreground">{cashierName}</span>
           </div>
         </div>
       </header>
