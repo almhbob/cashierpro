@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Supermarket POS API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: products
+    description: Product management
+  - name: sales
+    description: Sales and transactions
 paths:
   /healthz:
     get:
@@ -24,6 +28,219 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List all products
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/barcode/{barcode}:
+    get:
+      operationId: getProductByBarcode
+      tags: [products]
+      summary: Get product by barcode
+      parameters:
+        - name: barcode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProduct
+      tags: [products]
+      summary: Update product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductBody"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Product deleted
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sales:
+    get:
+      operationId: listSales
+      tags: [sales]
+      summary: List recent sales
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          description: List of sales
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sale"
+    post:
+      operationId: createSale
+      tags: [sales]
+      summary: Create a new sale (checkout)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSaleBody"
+      responses:
+        "201":
+          description: Sale created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+
+  /sales/{id}:
+    get:
+      operationId: getSale
+      tags: [sales]
+      summary: Get sale details with items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sale details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleWithItems"
+        "404":
+          description: Sale not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sales/stats/daily:
+    get:
+      operationId: getDailyStats
+      tags: [sales]
+      summary: Get daily sales statistics
+      responses:
+        "200":
+          description: Daily stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +251,216 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        barcode:
+          type: string
+        name:
+          type: string
+        nameAr:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        category:
+          type: string
+        unit:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - barcode
+        - name
+        - nameAr
+        - price
+        - stock
+        - category
+        - unit
+        - createdAt
+        - updatedAt
+
+    CreateProductBody:
+      type: object
+      properties:
+        barcode:
+          type: string
+        name:
+          type: string
+        nameAr:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        category:
+          type: string
+        unit:
+          type: string
+      required:
+        - barcode
+        - name
+        - nameAr
+        - price
+        - stock
+        - category
+        - unit
+
+    UpdateProductBody:
+      type: object
+      properties:
+        barcode:
+          type: string
+        name:
+          type: string
+        nameAr:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        category:
+          type: string
+        unit:
+          type: string
+
+    SaleItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        saleId:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        productNameAr:
+          type: string
+        barcode:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        subtotal:
+          type: number
+      required:
+        - id
+        - saleId
+        - productId
+        - productName
+        - productNameAr
+        - barcode
+        - quantity
+        - unitPrice
+        - subtotal
+
+    Sale:
+      type: object
+      properties:
+        id:
+          type: integer
+        total:
+          type: number
+        amountPaid:
+          type: number
+        change:
+          type: number
+        cashierName:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - total
+        - amountPaid
+        - change
+        - cashierName
+        - createdAt
+
+    SaleWithItems:
+      type: object
+      properties:
+        id:
+          type: integer
+        total:
+          type: number
+        amountPaid:
+          type: number
+        change:
+          type: number
+        cashierName:
+          type: string
+        createdAt:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SaleItem"
+      required:
+        - id
+        - total
+        - amountPaid
+        - change
+        - cashierName
+        - createdAt
+        - items
+
+    CreateSaleItemInput:
+      type: object
+      properties:
+        productId:
+          type: integer
+        quantity:
+          type: integer
+      required:
+        - productId
+        - quantity
+
+    CreateSaleBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateSaleItemInput"
+        amountPaid:
+          type: number
+        cashierName:
+          type: string
+      required:
+        - items
+        - amountPaid
+        - cashierName
+
+    DailyStats:
+      type: object
+      properties:
+        totalSales:
+          type: integer
+        totalRevenue:
+          type: number
+        totalItems:
+          type: integer
+        averageOrderValue:
+          type: number
+      required:
+        - totalSales
+        - totalRevenue
+        - totalItems
+        - averageOrderValue
