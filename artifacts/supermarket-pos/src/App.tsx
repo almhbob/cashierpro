@@ -7,6 +7,7 @@ import { LANGUAGES } from "./i18n";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import Settings from "@/pages/Settings";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 import Home from "@/pages/Home";
@@ -196,6 +197,7 @@ function AppRoutes() {
               <Route path="/inventory/low-stock" component={Inventory} />
               <Route path="/receive" component={Receive} />
               <Route path="/analytics" component={Analytics} />
+              <Route path="/settings" component={Settings} />
               <Route component={NotFound} />
             </Switch>
           </main>

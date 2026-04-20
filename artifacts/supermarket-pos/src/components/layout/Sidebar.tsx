@@ -10,7 +10,8 @@ import {
   LineChart,
   Truck,
   LogOut,
-  UserCircle2
+  UserCircle2,
+  Settings2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function Sidebar() {
     { href: "/sales", label: t("nav.sales"), icon: History },
     { href: "/analytics", label: t("nav.analytics"), icon: LineChart },
     { href: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { href: "/settings", label: t("nav.settings"), icon: Settings2 },
   ];
 
   const displayName = user

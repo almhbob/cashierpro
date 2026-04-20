@@ -35,6 +35,13 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
   - Locale files: `artifacts/supermarket-pos/src/i18n/locales/{ar,en,hi,bn}.json`
   - Config: `artifacts/supermarket-pos/src/i18n/index.ts`
   - `LANGUAGES` array + `DATE_LOCALES` map exported from i18n/index.ts
-- **Pages**: Home (POS checkout), Products, Inventory (stock adjust), Receive (goods), Sales, SaleDetail, Analytics, Dashboard
+- **Pages**: Home (POS checkout), Products, Inventory (stock adjust), Receive (goods), Sales, SaleDetail, Analytics, Dashboard, Settings (4-tab dev panel)
 - **Receipt printing**: `id="receipt-print"` div used for thermal printer 80mm
 - **API codegen note**: After `pnpm codegen`, overwrite `lib/api-zod/src/index.ts` with only `export * from "./generated/api";` if duplicate export errors occur
+- **Settings page** (`/settings`): 4-tab developer panel
+  - Tab 1 Subscription: 3 plan cards (Starter free / Pro 99 SAR / Enterprise 299 SAR), current plan banner, feature comparison table
+  - Tab 2 Server: live server stats (memory gauge, DB latency, uptime) auto-refreshed every 30s via `GET /api/admin/server-stats`; 4 server upgrade plans (Shared/VPS/VPS+/Dedicated)
+  - Tab 3 Store: store info form persisted to `store_settings` DB table via `GET|PUT /api/admin/settings`
+  - Tab 4 Security: active session display, API info panel, security checklist, support card
+- **DB table** `store_settings`: key/value/updated_at (lib/db/src/schema/settings.ts)
+- **API routes** `artifacts/api-server/src/routes/admin.ts`: mounted at `/api/admin`
