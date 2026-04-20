@@ -69,6 +69,8 @@ export default function Home() {
           if (!res.ok) throw new Error("Product not found");
           return res.json();
         },
+        retry: false,
+        staleTime: 30_000,
       });
 
       setCart(prev => {
