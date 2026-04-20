@@ -46,7 +46,7 @@ export function Sidebar() {
 
   const plan = tenant?.plan ?? "starter";
   const planLabel = PLAN_LABELS[plan];
-  const trialDaysLeft = tenant?.trialDaysLeft;
+  const trialDaysLeft = tenant?.trialDaysLeft ?? null;
 
   return (
     <div className="w-64 border-l bg-card flex flex-col h-[100dvh]">
