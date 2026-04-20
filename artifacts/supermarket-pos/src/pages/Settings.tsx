@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { useTranslation } from "react-i18next";
+import { useTenant, PLAN_LABELS } from "@/context/TenantContext";
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter,
 } from "@/components/ui/card";
@@ -162,6 +163,7 @@ export default function SettingsPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { tenant, refetch: refetchTenant } = useTenant();
 
   /* ── Server Stats ── */
   const { data: stats, isLoading: statsLoading, refetch: refetchStats, isFetching } = useQuery<ServerStats>({
@@ -204,6 +206,25 @@ export default function SettingsPage() {
     onError: () => toast({ title: t("common.error"), variant: "destructive" }),
   });
 
+  const upgradeMutation = useMutation({
+    mutationFn: async (plan: string) => {
+      const res = await fetch("/api/tenants/me/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchTenant();
+      toast({ title: "تم تفعيل الخطة بنجاح" });
+    },
+  });
+
+  const currentPlan = tenant?.plan ?? "starter";
+  const currentPlanLabel = PLAN_LABELS[currentPlan];
+
   const isRtl = i18n.language === "ar";
 
   return (
@@ -240,29 +261,34 @@ export default function SettingsPage() {
         ══════════════════════════════════════════ */}
         <TabsContent value="subscription" className="space-y-6">
           {/* Current Plan Banner */}
-          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+          <Card className={cn("border-2", currentPlanLabel.bg)}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/20 rounded-xl">
-                    <Zap className="h-6 w-6 text-primary" />
+                  <div className={cn("p-3 rounded-xl", currentPlanLabel.bg)}>
+                    <Crown className={cn("h-6 w-6", currentPlanLabel.color)} />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">{t("settings.currentPlan")}</p>
-                    <p className="text-2xl font-bold text-primary">{t("settings.planStarter")}</p>
+                    <p className={cn("text-2xl font-bold", currentPlanLabel.color)}>{currentPlanLabel.ar}</p>
+                    {tenant?.status === "trial" && tenant.trialDaysLeft !== null && (
+                      <p className="text-xs text-amber-600 mt-0.5">تجربة مجانية — {tenant.trialDaysLeft} يوم متبقي</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
                   <div className="text-center">
-                    <p className="text-2xl font-bold">1</p>
+                    <p className="text-2xl font-bold">{tenant?.limits.cashiers === Infinity ? "∞" : (tenant?.limits.cashiers ?? 1)}</p>
                     <p className="text-muted-foreground">{t("settings.cashiers")}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">500</p>
+                    <p className="text-2xl font-bold">{tenant?.limits.products === Infinity ? "∞" : (tenant?.limits.products ?? 500)}</p>
                     <p className="text-muted-foreground">{t("settings.products")}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">مجاني</p>
+                    <p className={cn("text-2xl font-bold", currentPlanLabel.color)}>
+                      {(tenant?.limits.price ?? 0) === 0 ? "مجاني" : `${tenant?.limits.price} ر.س`}
+                    </p>
                     <p className="text-muted-foreground">{t("settings.perMonth")}</p>
                   </div>
                 </div>
@@ -274,17 +300,18 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {SUB_PLANS.map((plan) => {
               const Icon = plan.icon;
+              const isCurrent = plan.id === currentPlan;
               return (
                 <Card
                   key={plan.id}
-                  className={cn("relative transition-shadow hover:shadow-lg", plan.border, plan.current && "ring-2 ring-primary")}
+                  className={cn("relative transition-shadow hover:shadow-lg", plan.border, isCurrent && "ring-2 ring-primary")}
                 >
                   {plan.badge && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge className="bg-primary text-white shadow-md px-3 py-1">{plan.badge}</Badge>
                     </div>
                   )}
-                  {plan.current && (
+                  {isCurrent && (
                     <div className="absolute top-3 right-3">
                       <Badge variant="outline" className="text-primary border-primary/50 text-xs">{t("settings.currentPlan")}</Badge>
                     </div>
@@ -312,7 +339,7 @@ export default function SettingsPage() {
                     ))}
                   </CardContent>
                   <CardFooter>
-                    {plan.current ? (
+                    {isCurrent ? (
                       <Button variant="outline" className="w-full" disabled>
                         {t("settings.activePlan")}
                       </Button>

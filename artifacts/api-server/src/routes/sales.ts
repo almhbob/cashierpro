@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { db, productsTable, salesTable, saleItemsTable } from "@workspace/db";
 import {
   CreateSaleBody,
@@ -10,12 +10,14 @@ import {
 const router: IRouter = Router();
 
 router.get("/sales", async (req, res): Promise<void> => {
+  const tenantId = (req as any).tenantId as string;
   const query = ListSalesQueryParams.safeParse(req.query);
   const limit = query.success && query.data.limit ? query.data.limit : 50;
 
   const results = await db
     .select()
     .from(salesTable)
+    .where(eq(salesTable.tenantId, tenantId))
     .orderBy(desc(salesTable.createdAt))
     .limit(limit);
 
@@ -23,24 +25,18 @@ router.get("/sales", async (req, res): Promise<void> => {
 });
 
 router.post("/sales", async (req, res): Promise<void> => {
+  const tenantId = (req as any).tenantId as string;
   const parsed = CreateSaleBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { items, amountPaid, cashierName } = parsed.data;
-
-  if (items.length === 0) {
-    res.status(400).json({ error: "لا توجد منتجات في السلة" });
-    return;
-  }
+  if (items.length === 0) { res.status(400).json({ error: "لا توجد منتجات في السلة" }); return; }
 
   const productIds = items.map((i) => i.productId);
   const products = await db
     .select()
     .from(productsTable)
-    .where(sql`${productsTable.id} = ANY(${productIds})`);
+    .where(and(eq(productsTable.tenantId, tenantId), sql`${productsTable.id} = ANY(${productIds})`));
 
   const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -49,10 +45,7 @@ router.post("/sales", async (req, res): Promise<void> => {
 
   for (const item of items) {
     const product = productMap.get(item.productId);
-    if (!product) {
-      res.status(404).json({ error: `المنتج برقم ${item.productId} غير موجود` });
-      return;
-    }
+    if (!product) { res.status(404).json({ error: `المنتج برقم ${item.productId} غير موجود` }); return; }
     const subtotal = product.price * item.quantity;
     total += subtotal;
     saleItemsData.push({
@@ -67,31 +60,27 @@ router.post("/sales", async (req, res): Promise<void> => {
   }
 
   const change = amountPaid - total;
-  if (change < 0) {
-    res.status(400).json({ error: "المبلغ المدفوع غير كافٍ" });
-    return;
-  }
+  if (change < 0) { res.status(400).json({ error: "المبلغ المدفوع غير كافٍ" }); return; }
 
   const [sale] = await db
     .insert(salesTable)
-    .values({ total, amountPaid, change, cashierName })
+    .values({ tenantId, total, amountPaid, change, cashierName })
     .returning();
 
-  await db.insert(saleItemsTable).values(
-    saleItemsData.map((item) => ({ saleId: sale.id, ...item }))
-  );
+  await db.insert(saleItemsTable).values(saleItemsData.map((item) => ({ saleId: sale.id, ...item })));
 
   for (const item of items) {
     await db
       .update(productsTable)
       .set({ stock: sql`${productsTable.stock} - ${item.quantity}` })
-      .where(eq(productsTable.id, item.productId));
+      .where(and(eq(productsTable.tenantId, tenantId), eq(productsTable.id, item.productId)));
   }
 
   res.status(201).json(sale);
 });
 
-router.get("/sales/stats/daily", async (_req, res): Promise<void> => {
+router.get("/sales/stats/daily", async (req, res): Promise<void> => {
+  const tenantId = (req as any).tenantId as string;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -101,15 +90,13 @@ router.get("/sales/stats/daily", async (_req, res): Promise<void> => {
       totalRevenue: sql<number>`coalesce(sum(${salesTable.total}), 0)::float`,
     })
     .from(salesTable)
-    .where(sql`${salesTable.createdAt} >= ${today}`);
+    .where(and(eq(salesTable.tenantId, tenantId), sql`${salesTable.createdAt} >= ${today}`));
 
   const [itemStats] = await db
-    .select({
-      totalItems: sql<number>`coalesce(sum(${saleItemsTable.quantity}), 0)::int`,
-    })
+    .select({ totalItems: sql<number>`coalesce(sum(${saleItemsTable.quantity}), 0)::int` })
     .from(saleItemsTable)
     .leftJoin(salesTable, eq(saleItemsTable.saleId, salesTable.id))
-    .where(sql`${salesTable.createdAt} >= ${today}`);
+    .where(and(eq(salesTable.tenantId, tenantId), sql`${salesTable.createdAt} >= ${today}`));
 
   const totalSales = stats?.totalSales ?? 0;
   const totalRevenue = stats?.totalRevenue ?? 0;
@@ -119,7 +106,8 @@ router.get("/sales/stats/daily", async (_req, res): Promise<void> => {
   res.json({ totalSales, totalRevenue, totalItems, averageOrderValue });
 });
 
-router.get("/sales/trends", async (_req, res): Promise<void> => {
+router.get("/sales/trends", async (req, res): Promise<void> => {
+  const tenantId = (req as any).tenantId as string;
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   thirtyDaysAgo.setHours(0, 0, 0, 0);
@@ -131,7 +119,7 @@ router.get("/sales/trends", async (_req, res): Promise<void> => {
       totalRevenue: sql<number>`coalesce(sum(${salesTable.total}), 0)::float`,
     })
     .from(salesTable)
-    .where(sql`${salesTable.createdAt} >= ${thirtyDaysAgo}`)
+    .where(and(eq(salesTable.tenantId, tenantId), sql`${salesTable.createdAt} >= ${thirtyDaysAgo}`))
     .groupBy(sql`date(${salesTable.createdAt} AT TIME ZONE 'UTC')`)
     .orderBy(sql`date(${salesTable.createdAt} AT TIME ZONE 'UTC')`);
 
@@ -139,27 +127,18 @@ router.get("/sales/trends", async (_req, res): Promise<void> => {
 });
 
 router.get("/sales/:id", async (req, res): Promise<void> => {
+  const tenantId = (req as any).tenantId as string;
   const params = GetSaleParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
   const [sale] = await db
     .select()
     .from(salesTable)
-    .where(eq(salesTable.id, params.data.id));
+    .where(and(eq(salesTable.tenantId, tenantId), eq(salesTable.id, params.data.id)));
 
-  if (!sale) {
-    res.status(404).json({ error: "الفاتورة غير موجودة" });
-    return;
-  }
+  if (!sale) { res.status(404).json({ error: "الفاتورة غير موجودة" }); return; }
 
-  const saleItems = await db
-    .select()
-    .from(saleItemsTable)
-    .where(eq(saleItemsTable.saleId, params.data.id));
-
+  const saleItems = await db.select().from(saleItemsTable).where(eq(saleItemsTable.saleId, params.data.id));
   res.json({ ...sale, items: saleItems });
 });
 

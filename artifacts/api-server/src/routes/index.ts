@@ -4,6 +4,8 @@ import productsRouter from "./products";
 import salesRouter from "./sales";
 import inventoryRouter from "./inventory";
 import adminRouter from "./admin";
+import tenantsRouter from "./tenants";
+import superadminRouter from "./superadmin";
 
 const router: IRouter = Router();
 
@@ -12,5 +14,7 @@ router.use(productsRouter);
 router.use(salesRouter);
 router.use(inventoryRouter);
 router.use("/admin", adminRouter);
+router.use("/tenants", tenantsRouter);
+router.use("/superadmin", superadminRouter);
 
 export default router;

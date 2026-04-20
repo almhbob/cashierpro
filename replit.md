@@ -26,22 +26,57 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
 
-## Supermarket POS Features
+## Supermarket POS — Multi-Tenant SaaS (Foodics-style)
 
-- **Authentication**: Clerk (VITE_CLERK_PUBLISHABLE_KEY injected via vite.config.ts `define` block)
-- **Multi-language i18n**: Arabic (RTL default), English, Hindi, Bengali via react-i18next
-  - Language stored in localStorage key `pos-language`
-  - Direction set on `document.documentElement.dir` via `DirectionSync` component in App.tsx
-  - Locale files: `artifacts/supermarket-pos/src/i18n/locales/{ar,en,hi,bn}.json`
-  - Config: `artifacts/supermarket-pos/src/i18n/index.ts`
-  - `LANGUAGES` array + `DATE_LOCALES` map exported from i18n/index.ts
-- **Pages**: Home (POS checkout), Products, Inventory (stock adjust), Receive (goods), Sales, SaleDetail, Analytics, Dashboard, Settings (4-tab dev panel)
-- **Receipt printing**: `id="receipt-print"` div used for thermal printer 80mm
-- **API codegen note**: After `pnpm codegen`, overwrite `lib/api-zod/src/index.ts` with only `export * from "./generated/api";` if duplicate export errors occur
-- **Settings page** (`/settings`): 4-tab developer panel
-  - Tab 1 Subscription: 3 plan cards (Starter free / Pro 99 SAR / Enterprise 299 SAR), current plan banner, feature comparison table
-  - Tab 2 Server: live server stats (memory gauge, DB latency, uptime) auto-refreshed every 30s via `GET /api/admin/server-stats`; 4 server upgrade plans (Shared/VPS/VPS+/Dedicated)
-  - Tab 3 Store: store info form persisted to `store_settings` DB table via `GET|PUT /api/admin/settings`
-  - Tab 4 Security: active session display, API info panel, security checklist, support card
-- **DB table** `store_settings`: key/value/updated_at (lib/db/src/schema/settings.ts)
-- **API routes** `artifacts/api-server/src/routes/admin.ts`: mounted at `/api/admin`
+### Authentication & Multi-tenancy
+- **Auth**: Clerk (VITE_CLERK_PUBLISHABLE_KEY injected via vite.config.ts `define`)
+- **Multi-tenancy**: Auto-provisioned on first API call via `attachTenant` middleware
+  - File: `artifacts/api-server/src/middleware/tenant.ts`
+  - Creates tenant + owner membership row automatically; sets `needsOnboarding: true`
+  - 14-day free trial on signup; `PLAN_LIMITS = { starter, professional, enterprise }`
+  - Every API route receives `req.tenantId` and `req.tenant` for data isolation
+
+### DB Schema (lib/db/src/schema/)
+- `tenants` — id (uuid), name, nameEn, slug, ownerClerkId, plan, status, needsOnboarding, trialEndsAt
+- `tenant_members` — tenantId, clerkUserId, role (owner/cashier/viewer)
+- `tenant_settings` — tenantId, key, value (replaces old `store_settings`)
+- `products` — tenantId (nullable, filters per-store)
+- `sales` — tenantId (nullable, filters per-store)
+
+### Subscription Plans
+| Plan | Cashiers | Products | Price |
+|------|----------|----------|-------|
+| starter | 1 | 500 | Free |
+| professional | 5 | ∞ | 99 SAR/mo |
+| enterprise | ∞ | ∞ | 299 SAR/mo |
+
+### Frontend Architecture
+- **TenantContext**: `artifacts/supermarket-pos/src/context/TenantContext.tsx` — useTenant() hook
+- **Onboarding**: `artifacts/supermarket-pos/src/pages/Onboarding.tsx` — 3-step wizard (name → type → contact)
+- **SuperAdmin**: `artifacts/supermarket-pos/src/pages/SuperAdmin.tsx` — platform dashboard (MRR, stores, upgrade/suspend)
+- **App.tsx**: `TenantProvider` wraps all; redirects to Onboarding if `tenant.needsOnboarding`
+- **Sidebar**: Shows store name + plan badge + trial countdown
+
+### API Routes
+- `GET|PUT /api/tenants/me` — tenant info + update
+- `POST /api/tenants/me/complete-onboarding` — finalize setup + seed settings
+- `GET|PUT /api/tenants/me/settings` — store settings
+- `GET /api/tenants/me/members` — cashier list
+- `POST /api/tenants/me/upgrade` — change plan
+- `GET /api/superadmin/overview` — platform MRR + all stores
+- `PUT /api/superadmin/stores/:id/plan` — upgrade/suspend any store
+- `GET|PUT /api/admin/settings` — per-tenant settings (via tenantSettingsTable)
+
+### Multi-language i18n
+- Arabic (RTL default), English, Hindi, Bengali via react-i18next
+- Locale files: `artifacts/supermarket-pos/src/i18n/locales/{ar,en,hi,bn}.json`
+- Direction set on `document.documentElement.dir` via `DirectionSync` in App.tsx
+
+### Pages
+Home (POS checkout), Products, Inventory, Receive (goods), Sales, SaleDetail, Analytics, Dashboard, Settings (4-tab), Onboarding, SuperAdmin
+
+### Settings Tabs
+- Tab 1 Subscription: Real plan data from TenantContext; plan upgrade mutations
+- Tab 2 Server: Live stats (memory/latency/uptime) via `GET /api/admin/server-stats`
+- Tab 3 Store: Store info persisted to `tenant_settings` via `GET|PUT /api/admin/settings`
+- Tab 4 Security: Session display, API info, security checklist

@@ -5,6 +5,7 @@ import { clerkMiddleware, getAuth } from "@clerk/express";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { attachTenant } from "./middleware/tenant";
 
 const app: Express = express();
 
@@ -46,6 +47,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-app.use("/api", requireAuth, router);
+app.use("/api", requireAuth, attachTenant, router);
 
 export default app;

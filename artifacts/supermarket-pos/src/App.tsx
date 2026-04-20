@@ -8,7 +8,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/Settings";
+import Onboarding from "@/pages/Onboarding";
+import SuperAdmin from "@/pages/SuperAdmin";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { TenantProvider, useTenant } from "@/context/TenantContext";
 
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -174,34 +177,60 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function AppRoutes() {
+function AuthenticatedApp() {
   const { i18n } = useTranslation();
   const lang = LANGUAGES.find((l) => l.code === i18n.language);
   const dir = lang?.dir ?? "rtl";
+  const { tenant, isLoading } = useTenant();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 to-slate-100">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tenant?.needsOnboarding) {
+    return <Onboarding />;
+  }
+
+  return (
+    <div className="flex min-h-[100dvh] w-full" dir={dir}>
+      <Sidebar />
+      <main className="flex-1 flex flex-col min-w-0">
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/products" component={Products} />
+          <Route path="/sales" component={Sales} />
+          <Route path="/sales/:id" component={SaleDetail} />
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/inventory" component={Inventory} />
+          <Route path="/inventory/low-stock" component={Inventory} />
+          <Route path="/receive" component={Receive} />
+          <Route path="/analytics" component={Analytics} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/superadmin" component={SuperAdmin} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    </div>
+  );
+}
+
+function AppRoutes() {
   return (
     <>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
       </Show>
       <Show when="signed-in">
-        <div className="flex min-h-[100dvh] w-full" dir={dir}>
-          <Sidebar />
-          <main className="flex-1 flex flex-col min-w-0">
-            <Switch>
-              <Route path="/" component={Home} />
-              <Route path="/products" component={Products} />
-              <Route path="/sales" component={Sales} />
-              <Route path="/sales/:id" component={SaleDetail} />
-              <Route path="/dashboard" component={Dashboard} />
-              <Route path="/inventory" component={Inventory} />
-              <Route path="/inventory/low-stock" component={Inventory} />
-              <Route path="/receive" component={Receive} />
-              <Route path="/analytics" component={Analytics} />
-              <Route path="/settings" component={Settings} />
-              <Route component={NotFound} />
-            </Switch>
-          </main>
-        </div>
+        <TenantProvider>
+          <AuthenticatedApp />
+        </TenantProvider>
       </Show>
     </>
   );

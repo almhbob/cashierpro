@@ -1,10 +1,11 @@
-import { pgTable, text, serial, timestamp, doublePrecision, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, doublePrecision, integer, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const productsTable = pgTable("products", {
   id: serial("id").primaryKey(),
-  barcode: text("barcode").notNull().unique(),
+  tenantId: text("tenant_id"),
+  barcode: text("barcode").notNull(),
   name: text("name").notNull(),
   nameAr: text("name_ar").notNull(),
   price: doublePrecision("price").notNull(),
@@ -13,7 +14,9 @@ export const productsTable = pgTable("products", {
   unit: text("unit").notNull().default("قطعة"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => [
+  unique("uniq_product_barcode_tenant").on(t.tenantId, t.barcode),
+]);
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertProduct = z.infer<typeof insertProductSchema>;

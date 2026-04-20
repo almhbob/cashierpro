@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
-import { storeSettings } from "@workspace/db/schema";
-import { sql } from "drizzle-orm";
+import { tenantSettingsTable } from "@workspace/db/schema";
+import { sql, eq, and } from "drizzle-orm";
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const auth = getAuth(req);
@@ -73,22 +73,25 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   vatRate: "15",
 };
 
-router.get("/settings", async (_req, res) => {
-  const rows = await db.select().from(storeSettings);
+router.get("/settings", async (req, res) => {
+  const tenantId = (req as any).tenantId as string;
+  const rows = await db.select().from(tenantSettingsTable).where(eq(tenantSettingsTable.tenantId, tenantId));
   const map: Record<string, string> = { ...DEFAULT_SETTINGS };
-  for (const row of rows) {
-    map[row.key] = row.value;
-  }
+  for (const row of rows) map[row.key] = row.value;
   res.json(map);
 });
 
 router.put("/settings", async (req, res) => {
+  const tenantId = (req as any).tenantId as string;
   const data: Record<string, string> = req.body ?? {};
   for (const [key, value] of Object.entries(data)) {
     await db
-      .insert(storeSettings)
-      .values({ key, value })
-      .onConflictDoUpdate({ target: storeSettings.key, set: { value, updatedAt: new Date() } });
+      .insert(tenantSettingsTable)
+      .values({ tenantId, key, value })
+      .onConflictDoUpdate({
+        target: [tenantSettingsTable.tenantId, tenantSettingsTable.key],
+        set: { value, updatedAt: new Date() }
+      });
   }
   res.json({ success: true });
 });
