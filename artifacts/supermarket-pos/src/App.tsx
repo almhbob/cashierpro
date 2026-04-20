@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
@@ -83,65 +83,136 @@ const clerkAppearance = {
   },
 };
 
-function SignInPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
+const AUTH_FEATURES = [
+  { icon: "🛒", title: "نقطة بيع سريعة", desc: "مسح الباركود وإتمام البيع في ثوانٍ" },
+  { icon: "📦", title: "إدارة المخزون", desc: "تتبع المخزون والتنبيه عند النقص" },
+  { icon: "📊", title: "تقارير وتحليلات", desc: "إحصائيات يومية وشهرية مفصّلة" },
+  { icon: "☁️", title: "نظام سحابي", desc: "بياناتك محفوظة وآمنة دائماً" },
+];
+
+function AuthLayout({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-teal-50 to-slate-100 px-4" dir="rtl">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-teal-700">سوبر ماركت</h1>
-          <p className="text-slate-500 mt-1">نظام إدارة نقاط البيع</p>
+    <div className="flex min-h-screen w-full" dir="rtl">
+      {/* Right panel — Branding */}
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-14 text-white relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-white/5 rounded-full" />
         </div>
-        <SignIn
-          routing="path"
-          path={`${basePath}/sign-in`}
-          signUpUrl={`${basePath}/sign-up`}
-          appearance={clerkAppearance}
-          localization={{
-            signIn: {
-              start: {
-                title: "تسجيل الدخول",
-                subtitle: "أدخل بيانات حسابك للوصول إلى النظام",
-                actionText: "ليس لديك حساب؟",
-                actionLink: "إنشاء حساب",
-              },
-            },
-          } as any}
-        />
+
+        {/* Logo & Brand */}
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+              <span className="text-3xl">🏪</span>
+            </div>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight">كاشير برو</h1>
+              <p className="text-teal-200 text-sm">CashierPro</p>
+            </div>
+          </div>
+
+          <h2 className="text-4xl font-black leading-tight mb-4">
+            نظام إدارة المتاجر<br />
+            <span className="text-teal-200">السحابي الأول</span>
+          </h2>
+          <p className="text-teal-100 text-lg leading-relaxed max-w-md">
+            منصة متكاملة لإدارة نقاط البيع والمخزون والتقارير — تناسب المتاجر الصغيرة والكبيرة
+          </p>
+        </div>
+
+        {/* Features */}
+        <div className="relative z-10 grid grid-cols-2 gap-4 my-10">
+          {AUTH_FEATURES.map((f) => (
+            <div key={f.title} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/15 transition-colors">
+              <span className="text-3xl mb-3 block">{f.icon}</span>
+              <p className="font-bold text-sm mb-1">{f.title}</p>
+              <p className="text-teal-200 text-xs leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Testimonial */}
+        <div className="relative z-10 bg-white/10 rounded-2xl p-6 border border-white/10">
+          <p className="text-sm leading-relaxed text-teal-50 mb-3">
+            "كاشير برو غيّر طريقة إدارة متجرنا كلياً — التقارير اليومية والمخزون أصبحا سهلَين جداً"
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">أح</div>
+            <div>
+              <p className="font-bold text-sm">أحمد الشهري</p>
+              <p className="text-teal-300 text-xs">صاحب سوبر ماركت الرحمة</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Left panel — Form */}
+      <div className="flex-1 flex flex-col justify-center items-center bg-slate-50 p-8 lg:p-14">
+        <div className="w-full max-w-[440px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-xl">
+              <span className="text-xl">🏪</span>
+              <span className="font-bold">كاشير برو</span>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-slate-800 mb-2">{title}</h2>
+            <p className="text-slate-500">{subtitle}</p>
+          </div>
+
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-function SignUpPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
+function SignInPage() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-teal-50 to-slate-100 px-4" dir="rtl">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-teal-700">سوبر ماركت</h1>
-          <p className="text-slate-500 mt-1">نظام إدارة نقاط البيع</p>
-        </div>
-        <SignUp
-          routing="path"
-          path={`${basePath}/sign-up`}
-          signInUrl={`${basePath}/sign-in`}
-          appearance={clerkAppearance}
-          localization={{
-            signUp: {
-              start: {
-                title: "إنشاء حساب جديد",
-                subtitle: "أنشئ حسابك للوصول إلى النظام",
-                actionText: "لديك حساب بالفعل؟",
-                actionLink: "تسجيل الدخول",
-              },
-            },
-          } as any}
-        />
-      </div>
-    </div>
+    <AuthLayout title="مرحباً بعودتك 👋" subtitle="سجّل دخولك للوصول إلى لوحة التحكم">
+      <SignIn
+        routing="path"
+        path={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+        appearance={{
+          ...clerkAppearance,
+          elements: {
+            ...clerkAppearance.elements,
+            cardBox: "w-full shadow-none border-0",
+            card: "!shadow-none !border-0 !bg-transparent !p-0",
+            footer: "!shadow-none !border-0 !bg-transparent",
+            main: "!p-0",
+          },
+        }}
+      />
+    </AuthLayout>
+  );
+}
+
+function SignUpPage() {
+  return (
+    <AuthLayout title="ابدأ تجربتك المجانية 🚀" subtitle="أنشئ حسابك وجهّز متجرك في دقيقة واحدة">
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        signInUrl={`${basePath}/sign-in`}
+        appearance={{
+          ...clerkAppearance,
+          elements: {
+            ...clerkAppearance.elements,
+            cardBox: "w-full shadow-none border-0",
+            card: "!shadow-none !border-0 !bg-transparent !p-0",
+            footer: "!shadow-none !border-0 !bg-transparent",
+            main: "!p-0",
+          },
+        }}
+      />
+    </AuthLayout>
   );
 }
 
