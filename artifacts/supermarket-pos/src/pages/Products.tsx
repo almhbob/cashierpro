@@ -2,23 +2,25 @@ import { useState } from "react";
 import { useListProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/format";
 import { Search, Plus, Edit, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { getListProductsQueryKey } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
 
 export default function Products() {
   const [search, setSearch] = useState("");
   const { data: products, isLoading } = useListProducts({ search });
   const [isEditing, setIsEditing] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
-  
+  const { t } = useTranslation();
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
@@ -41,7 +43,7 @@ export default function Products() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
           setIsEditing(null);
-          toast({ title: "تم التحديث" });
+          toast({ title: t("products.updated") });
         }
       });
     } else if (isCreating) {
@@ -49,18 +51,18 @@ export default function Products() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
           setIsCreating(false);
-          toast({ title: "تمت الإضافة" });
+          toast({ title: t("products.added") });
         }
       });
     }
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+    if (confirm(t("products.deleteConfirm"))) {
       deleteProduct.mutate({ id }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
-          toast({ title: "تم الحذف" });
+          toast({ title: t("products.deleted") });
         }
       });
     }
@@ -69,16 +71,16 @@ export default function Products() {
   return (
     <div className="p-8 flex flex-col h-full">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-foreground">إدارة المنتجات</h1>
+        <h1 className="text-3xl font-bold text-foreground">{t("products.title")}</h1>
         <Button onClick={() => setIsCreating(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> إضافة منتج
+          <Plus className="h-4 w-4" /> {t("products.add")}
         </Button>
       </div>
 
       <div className="relative mb-6">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input 
-          placeholder="ابحث بالاسم أو الباركود..." 
+        <Input
+          placeholder={t("products.searchPlaceholder")}
           className="pl-4 pr-10 max-w-md"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -87,22 +89,22 @@ export default function Products() {
 
       <div className="flex-1 overflow-auto">
         <Card>
-          <table className="w-full text-right border-collapse">
+          <table className="w-full border-collapse" style={{ textAlign: "inherit" }}>
             <thead className="bg-muted text-muted-foreground border-b">
               <tr>
-                <th className="p-4 font-medium">الباركود</th>
-                <th className="p-4 font-medium">الاسم (عربي)</th>
-                <th className="p-4 font-medium">الاسم (إنجليزي)</th>
-                <th className="p-4 font-medium">السعر</th>
-                <th className="p-4 font-medium">المخزون</th>
-                <th className="p-4 font-medium">الوحدة</th>
-                <th className="p-4 font-medium">القسم</th>
-                <th className="p-4 font-medium w-24">إجراءات</th>
+                <th className="p-4 font-medium">{t("products.colBarcode")}</th>
+                <th className="p-4 font-medium">{t("products.colNameAr")}</th>
+                <th className="p-4 font-medium">{t("products.colNameEn")}</th>
+                <th className="p-4 font-medium">{t("products.colPrice")}</th>
+                <th className="p-4 font-medium">{t("products.colStock")}</th>
+                <th className="p-4 font-medium">{t("products.colUnit")}</th>
+                <th className="p-4 font-medium">{t("products.colCategory")}</th>
+                <th className="p-4 font-medium w-24">{t("products.colActions")}</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">جاري التحميل...</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">{t("products.loading")}</td></tr>
               ) : products?.map(product => (
                 <tr key={product.id} className="border-b hover:bg-muted/30">
                   <td className="p-4 font-mono text-sm">{product.barcode}</td>
@@ -130,41 +132,41 @@ export default function Products() {
       <Dialog open={!!isEditing || isCreating} onOpenChange={(o) => { if (!o) { setIsEditing(null); setIsCreating(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{isEditing ? "تعديل منتج" : "إضافة منتج"}</DialogTitle>
+            <DialogTitle>{isEditing ? t("products.editTitle") : t("products.addTitle")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">الباركود</label>
+                <label className="text-sm font-medium">{t("products.fieldBarcode")}</label>
                 <Input name="barcode" defaultValue={isEditing?.barcode} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">القسم</label>
+                <label className="text-sm font-medium">{t("products.fieldCategory")}</label>
                 <Input name="category" defaultValue={isEditing?.category} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">الاسم (عربي)</label>
+                <label className="text-sm font-medium">{t("products.fieldNameAr")}</label>
                 <Input name="nameAr" defaultValue={isEditing?.nameAr} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">الاسم (إنجليزي)</label>
+                <label className="text-sm font-medium">{t("products.fieldNameEn")}</label>
                 <Input name="name" defaultValue={isEditing?.name} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">السعر</label>
+                <label className="text-sm font-medium">{t("products.fieldPrice")}</label>
                 <Input name="price" type="number" step="0.01" defaultValue={isEditing?.price} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">المخزون</label>
+                <label className="text-sm font-medium">{t("products.fieldStock")}</label>
                 <Input name="stock" type="number" defaultValue={isEditing?.stock} required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">الوحدة</label>
+                <label className="text-sm font-medium">{t("products.fieldUnit")}</label>
                 <Input name="unit" defaultValue={isEditing?.unit || "قطعة"} required />
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={updateProduct.isPending || createProduct.isPending}>حفظ</Button>
+              <Button type="submit" disabled={updateProduct.isPending || createProduct.isPending}>{t("products.save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

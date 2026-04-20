@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useUser } from "@clerk/react";
+import { useTranslation } from "react-i18next";
 import { 
   useGetProductByBarcode,
   useCreateSale,
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/format";
 import { Trash2, Plus, Minus, Search, ShoppingCart, UserRound, Printer } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { DATE_LOCALES } from "@/i18n";
 
 interface CartItem {
   productId: number;
@@ -24,9 +26,12 @@ interface CartItem {
 
 export default function Home() {
   const { user } = useUser();
+  const { t, i18n } = useTranslation();
+  const dateLocale = DATE_LOCALES[i18n.language] ?? "ar-SA";
+
   const cashierName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "كاشير"
-    : "كاشير";
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || t("nav.cashier")
+    : t("nav.cashier");
 
   const [barcode, setBarcode] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -40,7 +45,6 @@ export default function Home() {
   // Keep barcode input focused
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't auto-focus if typing in other inputs
       if (document.activeElement?.tagName === "INPUT" && document.activeElement !== barcodeInputRef.current) {
         return;
       }
@@ -61,7 +65,6 @@ export default function Home() {
     if (!barcode.trim()) return;
 
     try {
-      // Fetch product directly using query client since we want to handle the promise
       const product = await queryClient.fetchQuery({
         queryKey: getGetProductByBarcodeQueryKey(barcode),
         queryFn: async () => {
@@ -94,8 +97,8 @@ export default function Home() {
       setBarcode("");
     } catch (error) {
       toast({
-        title: "خطأ",
-        description: "المنتج غير موجود",
+        title: t("common.error"),
+        description: t("pos.productNotFound"),
         variant: "destructive",
       });
       setBarcode("");
@@ -119,7 +122,7 @@ export default function Home() {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     if (amountPaid < total) {
-      toast({ title: "تنبيه", description: "المبلغ المدفوع أقل من الإجمالي", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("pos.change"), variant: "destructive" });
       return;
     }
 
@@ -131,13 +134,13 @@ export default function Home() {
       }
     }, {
       onSuccess: (sale) => {
-        toast({ title: "نجاح", description: "تمت عملية البيع بنجاح", variant: "default" });
+        toast({ title: t("common.success"), description: t("pos.saleSuccess") });
         setLastReceipt({ sale, cart });
         setCart([]);
         setAmountPaidStr("");
       },
       onError: () => {
-        toast({ title: "خطأ", description: "حدث خطأ أثناء عملية البيع", variant: "destructive" });
+        toast({ title: t("common.error"), description: t("pos.saleError"), variant: "destructive" });
       }
     });
   };
@@ -150,16 +153,16 @@ export default function Home() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <Printer className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl text-green-600">تمت العملية بنجاح</CardTitle>
-            <p className="text-muted-foreground mt-2">الباقي للعميل: {formatCurrency(lastReceipt.sale.change)}</p>
+            <CardTitle className="text-2xl text-green-600">{t("pos.operationSuccess")}</CardTitle>
+            <p className="text-muted-foreground mt-2">{t("pos.changeLabel")} {formatCurrency(lastReceipt.sale.change)}</p>
           </CardHeader>
           <CardContent className="pt-6">
             <div id="receipt-print" className="bg-white text-black p-4 text-sm font-mono border rounded-md shadow-sm">
-              <div className="text-center font-bold text-lg mb-2">متجرنا</div>
+              <div className="text-center font-bold text-lg mb-2">{t("pos.ourStore")}</div>
               <div className="text-center mb-4 text-xs text-gray-500">
-                {new Date(lastReceipt.sale.createdAt).toLocaleString("ar-SA")}
+                {new Date(lastReceipt.sale.createdAt).toLocaleString(dateLocale)}
                 <br/>
-                الكاشير: {lastReceipt.sale.cashierName}
+                {t("pos.cashierLabel")} {lastReceipt.sale.cashierName}
               </div>
               <div className="border-t border-b border-dashed border-gray-300 py-2 mb-2">
                 {lastReceipt.cart.map((item: CartItem, i: number) => (
@@ -170,25 +173,25 @@ export default function Home() {
                 ))}
               </div>
               <div className="flex justify-between font-bold mb-1">
-                <span>الإجمالي:</span>
+                <span>{t("pos.totalLabel")}</span>
                 <span>{formatCurrency(lastReceipt.sale.total)}</span>
               </div>
               <div className="flex justify-between text-xs mb-1">
-                <span>المدفوع:</span>
+                <span>{t("pos.paidLabel")}</span>
                 <span>{formatCurrency(lastReceipt.sale.amountPaid)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span>الباقي:</span>
+                <span>{t("pos.changeLabel")}</span>
                 <span>{formatCurrency(lastReceipt.sale.change)}</span>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex gap-4">
             <Button variant="outline" className="w-full" onClick={() => window.print()}>
-              <Printer className="ml-2 h-4 w-4" /> طباعة الفاتورة
+              <Printer className="ml-2 h-4 w-4" /> {t("pos.printReceipt")}
             </Button>
             <Button className="w-full" onClick={() => setLastReceipt(null)}>
-              طلب جديد
+              {t("pos.newOrder")}
             </Button>
           </CardFooter>
         </Card>
@@ -198,11 +201,10 @@ export default function Home() {
 
   return (
     <div className="flex-1 flex flex-col h-[100dvh] overflow-hidden bg-muted/30">
-      {/* Header */}
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0 shadow-sm">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <ShoppingCart className="h-6 w-6 text-primary" />
-          نقاط البيع
+          {t("pos.title")}
         </h2>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-md">
@@ -212,10 +214,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex gap-6 p-6 overflow-hidden">
-        
-        {/* Left Side: Cart */}
         <div className="flex-1 flex flex-col bg-card border rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 border-b bg-muted/50">
             <form onSubmit={handleBarcodeSubmit} className="relative">
@@ -224,7 +223,7 @@ export default function Home() {
                 ref={barcodeInputRef}
                 value={barcode}
                 onChange={e => setBarcode(e.target.value)}
-                placeholder="امسح الباركود أو اكتبه هنا..."
+                placeholder={t("pos.barcodePlaceholder")}
                 className="h-12 pl-4 pr-10 text-lg bg-background"
                 autoFocus
               />
@@ -235,16 +234,16 @@ export default function Home() {
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
                 <ShoppingCart className="h-16 w-16 opacity-20" />
-                <p className="text-lg">السلة فارغة، ابدأ بمسح المنتجات</p>
+                <p className="text-lg">{t("pos.cartEmpty")}</p>
               </div>
             ) : (
-              <table className="w-full text-right">
+              <table className="w-full" style={{ textAlign: "inherit" }}>
                 <thead className="text-muted-foreground text-sm border-b">
                   <tr>
-                    <th className="pb-3 font-medium">المنتج</th>
-                    <th className="pb-3 font-medium w-32 text-center">الكمية</th>
-                    <th className="pb-3 font-medium w-24">السعر</th>
-                    <th className="pb-3 font-medium w-24">المجموع</th>
+                    <th className="pb-3 font-medium">{t("pos.colProduct")}</th>
+                    <th className="pb-3 font-medium w-32 text-center">{t("pos.colQty")}</th>
+                    <th className="pb-3 font-medium w-24">{t("pos.colPrice")}</th>
+                    <th className="pb-3 font-medium w-24">{t("pos.colTotal")}</th>
                     <th className="pb-3 w-12"></th>
                   </tr>
                 </thead>
@@ -281,20 +280,19 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Side: Checkout */}
         <div className="w-96 shrink-0 flex flex-col gap-4">
           <Card className="shadow-sm">
             <CardHeader className="bg-muted/50 border-b py-4">
-              <CardTitle className="text-lg">ملخص الطلب</CardTitle>
+              <CardTitle className="text-lg">{t("pos.orderSummary")}</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="flex justify-between items-end">
-                <span className="text-muted-foreground text-lg">الإجمالي</span>
+                <span className="text-muted-foreground text-lg">{t("pos.subtotal")}</span>
                 <span className="text-4xl font-bold text-primary">{formatCurrency(total)}</span>
               </div>
               
               <div className="space-y-3 pt-6 border-t">
-                <label className="text-sm font-medium">المبلغ المدفوع</label>
+                <label className="text-sm font-medium">{t("pos.amountPaid")}</label>
                 <Input 
                   type="number" 
                   className="h-14 text-2xl text-left bg-muted/50 font-bold" 
@@ -306,7 +304,7 @@ export default function Home() {
               </div>
 
               <div className="flex justify-between items-center pt-2">
-                <span className="text-muted-foreground">الباقي للعميل</span>
+                <span className="text-muted-foreground">{t("pos.change")}</span>
                 <span className={`text-xl font-bold ${change > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
                   {formatCurrency(change)}
                 </span>
@@ -318,7 +316,7 @@ export default function Home() {
                 disabled={cart.length === 0 || amountPaid < total || createSale.isPending}
                 onClick={handleCheckout}
               >
-                {createSale.isPending ? "جاري الإتمام..." : "إتمام البيع"}
+                {createSale.isPending ? t("pos.processing") : t("pos.completeSale")}
               </Button>
             </CardFooter>
           </Card>

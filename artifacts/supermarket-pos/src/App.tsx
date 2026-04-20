@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { useTranslation } from "react-i18next";
+import { LANGUAGES } from "./i18n";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -139,6 +141,16 @@ function SignUpPage() {
   );
 }
 
+function DirectionSync() {
+  const { i18n } = useTranslation();
+  useEffect(() => {
+    const lang = LANGUAGES.find((l) => l.code === i18n.language);
+    document.documentElement.dir = lang?.dir ?? "rtl";
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -162,13 +174,16 @@ function ClerkQueryClientCacheInvalidator() {
 }
 
 function AppRoutes() {
+  const { i18n } = useTranslation();
+  const lang = LANGUAGES.find((l) => l.code === i18n.language);
+  const dir = lang?.dir ?? "rtl";
   return (
     <>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
       </Show>
       <Show when="signed-in">
-        <div className="flex min-h-[100dvh] w-full" dir="rtl">
+        <div className="flex min-h-[100dvh] w-full" dir={dir}>
           <Sidebar />
           <main className="flex-1 flex flex-col min-w-0">
             <Switch>
@@ -202,6 +217,7 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
+        <DirectionSync />
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
           <Switch>

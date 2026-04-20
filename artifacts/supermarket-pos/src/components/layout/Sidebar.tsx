@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
+import { useTranslation } from "react-i18next";
 import { 
   Calculator, 
   PackageSearch, 
@@ -13,24 +14,26 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-const NAV_ITEMS = [
-  { href: "/", label: "نقاط البيع", icon: Calculator },
-  { href: "/products", label: "المنتجات", icon: PackageSearch },
-  { href: "/inventory", label: "المخزون", icon: ClipboardList },
-  { href: "/receive", label: "استلام البضاعة", icon: Truck },
-  { href: "/sales", label: "المبيعات", icon: History },
-  { href: "/analytics", label: "التحليلات", icon: LineChart },
-  { href: "/dashboard", label: "لوحة القيادة", icon: LayoutDashboard },
-];
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function Sidebar() {
   const [location] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { t } = useTranslation();
+
+  const NAV_ITEMS = [
+    { href: "/", label: t("nav.pos"), icon: Calculator },
+    { href: "/products", label: t("nav.products"), icon: PackageSearch },
+    { href: "/inventory", label: t("nav.inventory"), icon: ClipboardList },
+    { href: "/receive", label: t("nav.receive"), icon: Truck },
+    { href: "/sales", label: t("nav.sales"), icon: History },
+    { href: "/analytics", label: t("nav.analytics"), icon: LineChart },
+    { href: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+  ];
 
   const displayName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "مستخدم"
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || t("nav.cashier")
     : "...";
 
   return (
@@ -38,7 +41,7 @@ export function Sidebar() {
       <div className="p-6 border-b">
         <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
           <Calculator className="h-6 w-6" />
-          <span>سوبر ماركت</span>
+          <span>{t("brand")}</span>
         </h1>
       </div>
       <nav className="flex-1 p-4 space-y-2">
@@ -61,14 +64,15 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="p-4 border-t space-y-3">
-        <div className="flex items-center gap-2 px-2">
+      <div className="p-4 border-t space-y-2">
+        <div className="flex items-center gap-2 px-2 mb-1">
           <UserCircle2 className="h-8 w-8 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-            <p className="text-xs text-muted-foreground">كاشير</p>
+            <p className="text-xs text-muted-foreground">{t("nav.cashier")}</p>
           </div>
         </div>
+        <LanguageSwitcher />
         <Button
           variant="ghost"
           size="sm"
@@ -76,9 +80,9 @@ export function Sidebar() {
           onClick={() => signOut({ redirectUrl: window.location.origin + (import.meta.env.BASE_URL || "/") })}
         >
           <LogOut className="h-4 w-4" />
-          <span>تسجيل الخروج</span>
+          <span>{t("nav.signOut")}</span>
         </Button>
-        <p className="text-xs text-center text-muted-foreground">نظام الكاشير © {new Date().getFullYear()}</p>
+        <p className="text-xs text-center text-muted-foreground">{t("nav.footer")} © {new Date().getFullYear()}</p>
       </div>
     </div>
   );
