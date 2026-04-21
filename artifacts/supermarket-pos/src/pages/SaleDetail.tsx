@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { useGetSale } from "@workspace/api-client-react";
+import { useGetSale, getGetSaleQueryKey } from "@workspace/api-client-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
@@ -9,7 +9,7 @@ import { DATE_LOCALES } from "@/i18n";
 
 export default function SaleDetail() {
   const { id } = useParams();
-  const { data: sale, isLoading } = useGetSale(Number(id), { query: { enabled: !!id } });
+  const { data: sale, isLoading } = useGetSale(Number(id), { query: { enabled: !!id, queryKey: getGetSaleQueryKey(Number(id)) } });
   const { t, i18n } = useTranslation();
   const dateLocale = DATE_LOCALES[i18n.language] ?? "ar-SA";
 
