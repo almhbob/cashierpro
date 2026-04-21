@@ -234,6 +234,19 @@ function AuthLayout({ children, title, subtitle }: { children: ReactNode; title:
           {children}
 
           <DemoCodeSection />
+
+          {/* Developer Portal Link */}
+          <div className="mt-6 pt-5 border-t border-slate-200 text-center">
+            <a
+              href={`${basePath}/dev`}
+              className="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors group"
+            >
+              <span className="text-base">🛠️</span>
+              <span className="group-hover:underline">بوابة المطور</span>
+              <span className="text-slate-300">|</span>
+              <span dir="ltr" className="font-mono text-slate-300 group-hover:text-slate-500">/dev</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
