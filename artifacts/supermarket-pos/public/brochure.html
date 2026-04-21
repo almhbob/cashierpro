@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>كاشير برو — النظام الاحترافي لإدارة المتاجر</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --teal:   #0d9488;
+    --teal2:  #0f766e;
+    --teal3:  #134e4a;
+    --gold:   #f59e0b;
+    --gold2:  #d97706;
+    --dark:   #0f172a;
+    --gray:   #64748b;
+    --light:  #f8fafc;
+    --white:  #ffffff;
+  }
+
+  body {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    background: var(--white);
+    color: var(--dark);
+    line-height: 1.7;
+  }
+
+  /* ── HERO ─────────────────────────────────── */
+  .hero {
+    background: linear-gradient(135deg, var(--teal3) 0%, var(--teal) 50%, #0891b2 100%);
+    color: white;
+    padding: 60px 40px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 350px; height: 350px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; right: -50px;
+    width: 400px; height: 400px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 50%;
+  }
+  .hero-inner { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+  .logo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 40px; }
+  .logo-icon {
+    width: 56px; height: 56px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .logo-text { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-sub  { font-size: 12px; opacity: 0.7; font-weight: 400; }
+
+  .hero h1 {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+  }
+  .hero h1 span { color: var(--gold); }
+  .hero p {
+    font-size: 18px;
+    opacity: 0.88;
+    max-width: 580px;
+    font-weight: 400;
+    margin-bottom: 36px;
+  }
+
+  .hero-badges { display: flex; gap: 12px; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 100px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+
+  /* ── STATS BAR ───────────────────────────── */
+  .stats-bar {
+    background: var(--gold);
+    padding: 18px 40px;
+  }
+  .stats-inner {
+    max-width: 900px; margin: 0 auto;
+    display: flex; justify-content: space-around; align-items: center;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 900; color: var(--dark); }
+  .stat-lbl { font-size: 12px; font-weight: 600; color: var(--teal3); }
+
+  /* ── SECTION BASE ────────────────────────── */
+  section { padding: 60px 40px; }
+  .section-inner { max-width: 900px; margin: 0 auto; }
+  .section-title {
+    font-size: 32px; font-weight: 800;
+    margin-bottom: 8px; color: var(--dark);
+  }
+  .section-title span { color: var(--teal); }
+  .section-sub {
+    font-size: 15px; color: var(--gray);
+    margin-bottom: 40px; font-weight: 400;
+  }
+
+  /* ── FEATURES GRID ───────────────────────── */
+  .features { background: var(--light); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .feature-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s;
+  }
+  .feature-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--teal), var(--teal2));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+  .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p  { font-size: 13px; color: var(--gray); line-height: 1.6; font-weight: 400; }
+
+  /* ── HOW IT WORKS ────────────────────────── */
+  .steps { display: flex; gap: 24px; flex-wrap: wrap; }
+  .step {
+    flex: 1; min-width: 200px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  }
+  .step-num {
+    width: 44px; height: 44px;
+    background: var(--teal);
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800;
+  }
+  .step h3 { font-size: 15px; font-weight: 700; }
+  .step p  { font-size: 13px; color: var(--gray); font-weight: 400; }
+
+  /* ── PRICING ─────────────────────────────── */
+  .pricing { background: var(--light); }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .plan-card {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 24px;
+    border: 2px solid #e2e8f0;
+    position: relative;
+  }
+  .plan-card.featured {
+    border-color: var(--teal);
+    box-shadow: 0 8px 40px rgba(13,148,136,0.15);
+  }
+  .plan-badge {
+    position: absolute;
+    top: -13px; left: 50%; transform: translateX(-50%);
+    background: var(--teal);
+    color: white;
+    font-size: 11px; font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .plan-name { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .plan-price {
+    font-size: 38px; font-weight: 900;
+    color: var(--teal);
+    margin: 12px 0 4px;
+  }
+  .plan-price span { font-size: 15px; color: var(--gray); font-weight: 500; }
+  .plan-desc { font-size: 12px; color: var(--gray); margin-bottom: 20px; font-weight: 400; }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .plan-features li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 500;
+  }
+  .plan-features li::before { content: '✓'; color: var(--teal); font-weight: 900; font-size: 14px; }
+
+  /* ── TESTIMONIAL ─────────────────────────── */
+  .testimonial-section { background: linear-gradient(135deg, var(--teal3), var(--teal2)); color: white; }
+  .testimonials { display: flex; gap: 20px; flex-wrap: wrap; }
+  .testimonial {
+    flex: 1; min-width: 240px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+  .stars { color: var(--gold); font-size: 18px; margin-bottom: 12px; letter-spacing: 2px; }
+  .testimonial p { font-size: 14px; opacity: 0.9; font-weight: 400; margin-bottom: 16px; line-height: 1.7; }
+  .testimonial-author { font-size: 13px; font-weight: 700; }
+  .testimonial-role   { font-size: 12px; opacity: 0.65; }
+
+  /* ── CTA ─────────────────────────────────── */
+  .cta { text-align: center; padding: 70px 40px; }
+  .cta h2 { font-size: 36px; font-weight: 900; margin-bottom: 12px; }
+  .cta h2 span { color: var(--teal); }
+  .cta p { font-size: 16px; color: var(--gray); margin-bottom: 32px; font-weight: 400; }
+  .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--teal);
+    color: white;
+    padding: 16px 36px;
+    border-radius: 12px;
+    font-size: 16px; font-weight: 700;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(13,148,136,0.35);
+  }
+  .btn-secondary {
+    background: white;
+    color: var(--teal);
+    border: 2px solid var(--teal);
+    padding: 14px 32px;
+    border-radius: 12px;
+    font-size: 16px; font-weight: 700;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+
+  /* ── CONTACT ─────────────────────────────── */
+  .contact { background: var(--dark); color: white; padding: 48px 40px; }
+  .contact-inner {
+    max-width: 900px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;
+  }
+  .contact h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .contact-items { display: flex; flex-direction: column; gap: 8px; }
+  .contact-item {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; opacity: 0.85;
+  }
+  .contact-icon {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .developer {
+    text-align: left;
+    border-right: 2px solid rgba(255,255,255,0.1);
+    padding-right: 32px;
+  }
+  .developer-name { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .developer-title { font-size: 13px; opacity: 0.6; margin-bottom: 12px; font-weight: 400; }
+  .cert-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cert { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+
+  /* ── FOOTER ──────────────────────────────── */
+  .footer {
+    background: #020617;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+  }
+
+  /* ── PRINT ───────────────────────────────── */
+  @media print {
+    .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .stats-bar, .features, .pricing, .testimonial-section, .contact { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    section { page-break-inside: avoid; }
+  }
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 32px; }
+    .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+    .hero { padding: 40px 20px 60px; }
+    section { padding: 40px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ══════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="logo-row">
+      <div class="logo-icon">🏪</div>
+      <div>
+        <div class="logo-text">كاشير برو</div>
+        <div class="logo-sub">CashierPro — نظام إدارة المتاجر</div>
+      </div>
+    </div>
+
+    <h1>إدارة متجرك بـ<span>ذكاء</span><br>وبساطة من أي مكان</h1>
+    <p>نظام نقاط بيع سحابي متكامل للمتاجر والسوبر ماركت — يعمل على الويب وكتطبيق مكتبي، مع تقارير لحظية وإدارة مخزون احترافية.</p>
+
+    <div class="hero-badges">
+      <div class="badge">☁️ سحابي 100%</div>
+      <div class="badge">📱 يعمل على جميع الأجهزة</div>
+      <div class="badge">🌐 عربي وإنجليزي</div>
+      <div class="badge">🔒 آمن ومشفّر</div>
+      <div class="badge">💻 نسخة Windows EXE</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STATS ══════════════════════════════════════════════════════════ -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-num">14 يوم</div>
+      <div class="stat-lbl">تجربة مجانية</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">∞</div>
+      <div class="stat-lbl">منتجات غير محدودة</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">24/7</div>
+      <div class="stat-lbl">خدمة عملاء</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">99.9%</div>
+      <div class="stat-lbl">وقت التشغيل</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">ZATCA</div>
+      <div class="stat-lbl">متوافق مع الفاتورة الإلكترونية</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FEATURES ══════════════════════════════════════════════════════ -->
+<section class="features">
+  <div class="section-inner">
+    <div class="section-title">كل ما يحتاجه <span>متجرك</span></div>
+    <div class="section-sub">منظومة متكاملة تغطي جميع احتياجات التشغيل اليومي</div>
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">🛒</div>
+        <h3>نقطة بيع سريعة</h3>
+        <p>مسح باركود فوري، إضافة منتجات يدوية، حساب الفكة تلقائياً، وطباعة إيصال في ثوانٍ.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>إدارة المخزون</h3>
+        <p>تتبع الكميات لحظياً، تنبيه عند قرب النفاد، تاريخ كامل للحركات، واستيراد بالجملة.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>تقارير وإحصائيات</h3>
+        <p>مبيعات يومية وشهرية، أكثر المنتجات مبيعاً، تحليل الأرباح، وتصدير Excel/PDF.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🧾</div>
+        <h3>فواتير احترافية</h3>
+        <p>فاتورة ضريبية متوافقة مع هيئة الزكاة، رقم VAT، شعار المتجر، وقابلة للطباعة الحرارية.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>إدارة الموظفين</h3>
+        <p>أدوار متعددة (كاشير / مدير)، سجل حضور، وتتبع مبيعات كل موظف بشكل منفصل.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">💻</div>
+        <h3>نسخة Windows مكتبية</h3>
+        <p>EXE قابل للتثبيت بدون انترنت، مرتبط بجهازك، يعمل مع قواعد بيانات محلية.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>يعمل على الجوال</h3>
+        <p>واجهة متجاوبة تعمل على الهاتف والتابلت والحاسب بنفس الكفاءة دون تطبيق إضافي.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>أمان وخصوصية</h3>
+        <p>تشفير كامل للبيانات، نسخ احتياطية تلقائية، وسجل تدقيق لجميع العمليات.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>ثنائي اللغة</h3>
+        <p>واجهة كاملة بالعربية والإنجليزية مع دعم RTL، مناسب لجميع جنسيات العاملين.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══════════════════════════════════════════════════ -->
+<section>
+  <div class="section-inner">
+    <div class="section-title">كيف تبدأ في <span>3 دقائق</span></div>
+    <div class="section-sub">لا تحتاج خبرة تقنية — فقط اتبع الخطوات</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>احصل على ترخيصك</h3>
+        <p>تواصل معنا لاختيار الباقة المناسبة واستلام مفتاح الترخيص الخاص بمتجرك.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>سجّل متجرك</h3>
+        <p>أدخل مفتاح الترخيص، أضف اسم المتجر ومعلوماته، وابدأ خلال دقيقتين.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>أضف المنتجات</h3>
+        <p>استورد قائمة منتجاتك بملف Excel أو أضفها يدوياً مع الباركود والأسعار.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>ابدأ البيع فوراً</h3>
+        <p>افتح شاشة الكاشير وابدأ بمسح الباركود وإتمام المعاملات — الأمر بهذه البساطة!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ════════════════════════════════════════════════════════ -->
+<section class="pricing">
+  <div class="section-inner">
+    <div class="section-title">باقات تناسب <span>كل متجر</span></div>
+    <div class="section-sub">ابدأ مجاناً لمدة 14 يوماً — لا بطاقة ائتمانية مطلوبة</div>
+    <div class="pricing-grid">
+
+      <div class="plan-card">
+        <div class="plan-name">🌱 مبتدئ</div>
+        <div class="plan-price">199 <span>ر.س / شهر</span></div>
+        <div class="plan-desc">مثالي للبقالات والمحلات الصغيرة</div>
+        <ul class="plan-features">
+          <li>حتى 500 منتج</li>
+          <li>كاشير واحد</li>
+          <li>تقارير أساسية</li>
+          <li>طباعة الإيصالات</li>
+          <li>دعم واتساب</li>
+        </ul>
+      </div>
+
+      <div class="plan-card featured">
+        <div class="plan-badge">⭐ الأكثر طلباً</div>
+        <div class="plan-name">🚀 احترافي</div>
+        <div class="plan-price">399 <span>ر.س / شهر</span></div>
+        <div class="plan-desc">للسوبر ماركت والمتاجر المتوسطة</div>
+        <ul class="plan-features">
+          <li>منتجات غير محدودة</li>
+          <li>3 كاشيرين</li>
+          <li>تقارير متقدمة + Excel</li>
+          <li>فاتورة ضريبية ZATCA</li>
+          <li>إدارة المخزون الكاملة</li>
+          <li>دعم أولوية 24/7</li>
+        </ul>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-name">🏢 مؤسسي</div>
+        <div class="plan-price">749 <span>ر.س / شهر</span></div>
+        <div class="plan-desc">للسلاسل والمتاجر الكبيرة</div>
+        <ul class="plan-features">
+          <li>فروع غير محدودة</li>
+          <li>كاشيرين غير محدودين</li>
+          <li>لوحة تحكم مركزية</li>
+          <li>تكاملات مع ERP</li>
+          <li>نسخة Windows مكتبية</li>
+          <li>مدير حساب مخصص</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TESTIMONIALS ═══════════════════════════════════════════════════ -->
+<section class="testimonial-section">
+  <div class="section-inner">
+    <div class="section-title" style="color:white">ماذا يقول <span style="color:var(--gold)">عملاؤنا</span></div>
+    <div class="section-sub" style="color:rgba(255,255,255,0.6)">تجارب حقيقية من مشغّلي المتاجر</div>
+    <div class="testimonials">
+
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <p>"غيّر كاشير برو طريقة عملنا بالكامل. الآن نعرف مخزوننا لحظة بلحظة ونطبع الفاتورة في ثوانٍ."</p>
+        <div class="testimonial-author">أحمد الشهري</div>
+        <div class="testimonial-role">مدير سوبر ماركت — الرياض</div>
+      </div>
+
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <p>"النظام سهل جداً حتى الموظفين اتعلموه بيوم واحد. التقارير ساعدتني أعرف أكثر منتج رابح عندي."</p>
+        <div class="testimonial-author">فيصل المطيري</div>
+        <div class="testimonial-role">صاحب بقالة — جدة</div>
+      </div>
+
+      <div class="testimonial">
+        <div class="stars">★★★★★</div>
+        <p>"استخدمت 3 أنظمة قبله وكلها معقدة. كاشير برو بسيط ويعطيني كل شيء أحتاجه بنقرة واحدة."</p>
+        <div class="testimonial-author">محمد العتيبي</div>
+        <div class="testimonial-role">مدير سلسلة محلات — الدمام</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA ════════════════════════════════════════════════════════════ -->
+<section class="cta">
+  <div class="section-inner">
+    <h2>جاهز تطوّر <span>متجرك؟</span></h2>
+    <p>ابدأ تجربتك المجانية الآن — لا بطاقة ائتمانية، لا التزامات</p>
+    <div class="cta-buttons">
+      <a href="mailto:Almhbob.iii@gmail.com" class="btn-primary">
+        📩 تواصل معنا الآن
+      </a>
+      <a href="https://wa.me/966530658285" class="btn-secondary">
+        💬 واتساب مباشر
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CONTACT ════════════════════════════════════════════════════════ -->
+<div class="contact">
+  <div class="contact-inner">
+    <div>
+      <h3>تواصل معنا</h3>
+      <div class="contact-items">
+        <div class="contact-item">
+          <div class="contact-icon">📧</div>
+          <span>Almhbob.iii@gmail.com</span>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">📱</div>
+          <span>0530658285</span>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">💬</div>
+          <span>واتساب: 966530658285+</span>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">🕐</div>
+          <span>الدعم: السبت – الخميس، 9ص – 9م</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="developer">
+      <div class="developer-name">Asim Abdulrahman Mohammed</div>
+      <div class="developer-title">مطوّر النظام | Full-Stack Developer</div>
+      <div class="cert-badges">
+        <span class="cert">Google</span>
+        <span class="cert">IBM</span>
+        <span class="cert">Cisco</span>
+        <span class="cert">Fortinet</span>
+        <span class="cert">Intel</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════════════════ -->
+<div class="footer">
+  © 2025 كاشير برو — جميع الحقوق محفوظة | CashierPro — All Rights Reserved
+</div>
+
+</body>
+</html>
