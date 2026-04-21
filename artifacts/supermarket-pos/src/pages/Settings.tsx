@@ -17,8 +17,11 @@ import {
   Settings2, Server, CreditCard, Store, Shield, Database,
   CheckCircle2, Zap, Star, Crown, Cpu, MemoryStick, Activity,
   RefreshCw, TrendingUp, Lock, Key, Clock, Globe, AlertCircle,
-  ChevronRight, BarChart3, Package, Users, Headphones,
+  ChevronRight, BarChart3, Package, Users, Headphones, Printer,
+  FileText, Wifi, Info,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /* ────────────────────────────────────────────────
@@ -227,6 +230,47 @@ export default function SettingsPage() {
 
   const isRtl = i18n.language === "ar";
 
+  /* ── Printer Settings (localStorage) ── */
+  const [printerSize, setPrinterSize] = useState<string>(() => localStorage.getItem("printerSize") || "80mm");
+  const [printerType, setPrinterType] = useState<string>(() => localStorage.getItem("printerType") || "thermal");
+  const [autoPrint, setAutoPrint] = useState<boolean>(() => localStorage.getItem("autoPrint") === "true");
+  const [showLogo, setShowLogo] = useState<boolean>(() => localStorage.getItem("showLogo") !== "false");
+
+  const savePrinterSettings = () => {
+    localStorage.setItem("printerSize", printerSize);
+    localStorage.setItem("printerType", printerType);
+    localStorage.setItem("autoPrint", String(autoPrint));
+    localStorage.setItem("showLogo", String(showLogo));
+    toast({ title: t("printer.saved") });
+  };
+
+  const testPrint = () => {
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    const paperWidth = printerSize === "58mm" ? "58mm" : printerSize === "a4" ? "210mm" : "80mm";
+    w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>
+      @page { size: ${paperWidth} auto; margin: 4mm; }
+      body { font-family: 'Courier New', monospace; font-size: ${printerSize === "a4" ? "12pt" : "10pt"}; width: ${paperWidth}; margin: 0; }
+      .center { text-align: center; } .bold { font-weight: bold; } .line { border-top: 1px dashed #000; margin: 4px 0; }
+      .row { display: flex; justify-content: space-between; }
+    </style></head><body>
+      <div class="center bold" style="font-size:1.2em;">فاتورة تجريبية</div>
+      <div class="center" style="font-size:0.8em;">TEST RECEIPT</div>
+      <div class="line"></div>
+      <div class="row"><span>منتج تجريبي</span><span>1x 25.00</span></div>
+      <div class="row"><span>منتج آخر</span><span>2x 10.00</span></div>
+      <div class="line"></div>
+      <div class="row bold"><span>الإجمالي</span><span>45.00 ر.س</span></div>
+      <div class="row" style="font-size:0.85em;"><span>الضريبة 15%</span><span>5.87 ر.س</span></div>
+      <div class="line"></div>
+      <div class="center" style="font-size:0.75em;margin-top:6px;">شكراً لزيارتكم</div>
+      <div class="center" style="font-size:0.7em;">حجم الورق: ${printerSize} | ${new Date().toLocaleString("ar-SA")}</div>
+    </body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 500);
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -241,7 +285,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="subscription" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 h-12">
+        <TabsList className="grid w-full grid-cols-5 h-12">
           <TabsTrigger value="subscription" className="gap-2">
             <CreditCard className="h-4 w-4" /> {t("settings.tabSubscription")}
           </TabsTrigger>
@@ -253,6 +297,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Shield className="h-4 w-4" /> {t("settings.tabSecurity")}
+          </TabsTrigger>
+          <TabsTrigger value="printer" className="gap-2">
+            <Printer className="h-4 w-4" /> {t("settings.tabPrinter")}
           </TabsTrigger>
         </TabsList>
 
@@ -738,6 +785,120 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ══════════════════════════════════════════
+            TAB 5 – PRINTER SETTINGS
+        ══════════════════════════════════════════ */}
+        <TabsContent value="printer" className="space-y-6">
+          {/* Info banner */}
+          <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+            <Info className="h-5 w-5 mt-0.5 shrink-0 text-blue-500" />
+            <p>{t("printer.tip")}</p>
+          </div>
+
+          {/* Paper Size */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" /> {t("printer.paperSize")}
+              </CardTitle>
+              <CardDescription>{t("printer.paperSizeDesc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { id: "80mm", label: t("printer.size80mm"), icon: "🧾", desc: "80 × auto mm" },
+                  { id: "58mm", label: t("printer.size58mm"), icon: "🗒️", desc: "58 × auto mm" },
+                  { id: "a4",   label: t("printer.sizeA4"),   icon: "📄", desc: "210 × 297 mm" },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setPrinterSize(opt.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md",
+                      printerSize === opt.id
+                        ? "border-primary bg-primary/5 shadow-md"
+                        : "border-border bg-card hover:border-primary/40"
+                    )}
+                  >
+                    <span className="text-3xl">{opt.icon}</span>
+                    <span className="font-semibold text-sm text-center">{opt.label}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{opt.desc}</span>
+                    {printerSize === opt.id && (
+                      <Badge className="bg-primary text-white text-xs mt-1">✓ محدد</Badge>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Printer Type */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Printer className="h-5 w-5 text-primary" /> {t("printer.printerType")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select value={printerType} onValueChange={setPrinterType}>
+                <SelectTrigger className="w-full sm:w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="thermal">🔥 {t("printer.typeThermal")}</SelectItem>
+                  <SelectItem value="laser">🖨️ {t("printer.typeLaser")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Options */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings2 className="h-5 w-5 text-primary" /> خيارات الطباعة
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium">{t("printer.autoPrint")}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t("printer.autoPrintDesc")}</p>
+                </div>
+                <Switch checked={autoPrint} onCheckedChange={setAutoPrint} />
+              </div>
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium">{t("printer.showLogo")}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">يظهر اسم المتجر والشعار في أعلى الفاتورة</p>
+                </div>
+                <Switch checked={showLogo} onCheckedChange={setShowLogo} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Charset info */}
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4 flex items-start gap-3">
+              <Wifi className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium text-green-800 text-sm">{t("printer.charsetInfo")}</p>
+                <p className="text-xs text-green-700 mt-1">{t("printer.charsetDesc")}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <div className="flex gap-3 flex-wrap">
+            <Button onClick={savePrinterSettings} className="gap-2 min-w-44">
+              <Printer className="h-4 w-4" /> {t("printer.saveSettings")}
+            </Button>
+            <Button variant="outline" onClick={testPrint} className="gap-2">
+              <FileText className="h-4 w-4" /> {t("printer.testPrint")}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
