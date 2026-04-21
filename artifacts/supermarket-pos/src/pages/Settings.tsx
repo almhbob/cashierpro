@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { cn } from "@/lib/utils";
 
 /* ────────────────────────────────────────────────
@@ -229,6 +230,9 @@ export default function SettingsPage() {
   const currentPlanLabel = PLAN_LABELS[currentPlan];
 
   const isRtl = i18n.language === "ar";
+
+  /* ── PWA Install ── */
+  const { isInstallable, isInstalled, install } = usePwaInstall();
 
   /* ── Printer Settings (localStorage) ── */
   const [printerSize, setPrinterSize] = useState<string>(() => localStorage.getItem("printerSize") || "80mm");
@@ -791,6 +795,45 @@ export default function SettingsPage() {
             TAB 5 – PRINTER SETTINGS
         ══════════════════════════════════════════ */}
         <TabsContent value="printer" className="space-y-6">
+
+          {/* PWA Install Banner */}
+          {isInstalled ? (
+            <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+              <div>
+                <p className="font-semibold">✅ التطبيق مثبّت على هذا الجهاز</p>
+                <p className="text-xs text-green-700 mt-0.5">يعمل التطبيق الآن كتطبيق مستقل بدون متصفح</p>
+              </div>
+            </div>
+          ) : (
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-emerald-50">
+              <CardContent className="p-5 flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/15 rounded-xl text-3xl">💻</div>
+                  <div>
+                    <p className="font-bold text-lg">تثبيت التطبيق على الكمبيوتر</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">يعمل بدون متصفح مثل أي برنامج عادي — أسرع وأكثر احترافية</p>
+                    {!isInstallable && (
+                      <p className="text-xs text-amber-600 mt-1">🔧 افتح التطبيق في Chrome أو Edge ثم اضغط على أيقونة التثبيت في شريط العنوان</p>
+                    )}
+                  </div>
+                </div>
+                {isInstallable && (
+                  <Button
+                    className="gap-2 bg-primary hover:bg-primary/90 text-white px-6"
+                    onClick={async () => {
+                      const ok = await install();
+                      if (ok) toast({ title: "🎉 تم تثبيت التطبيق بنجاح!" });
+                    }}
+                  >
+                    <Printer className="h-4 w-4" />
+                    تثبيت التطبيق الآن
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Info banner */}
           <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
             <Info className="h-5 w-5 mt-0.5 shrink-0 text-blue-500" />

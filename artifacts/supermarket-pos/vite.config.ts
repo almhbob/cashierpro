@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { VitePWA } from "vite-plugin-pwa";
 
 const rawPort = process.env.PORT;
 
@@ -32,6 +33,67 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.svg", "apple-touch-icon.png", "logo.svg"],
+      manifest: {
+        name: "نظام إدارة السوبر ماركت",
+        short_name: "POS كاشير",
+        description: "نظام نقاط البيع للسوبر ماركت — إدارة المبيعات والمخزون والفواتير",
+        theme_color: "#16a34a",
+        background_color: "#ffffff",
+        display: "standalone",
+        orientation: "landscape",
+        scope: basePath,
+        start_url: basePath,
+        lang: "ar",
+        dir: "rtl",
+        categories: ["business", "productivity"],
+        icons: [
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+          {
+            src: "apple-touch-icon.png",
+            sizes: "180x180",
+            type: "image/png",
+          },
+        ],
+        shortcuts: [
+          {
+            name: "نقطة البيع",
+            short_name: "البيع",
+            url: basePath,
+            description: "فتح شاشة الكاشير مباشرة",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^\/api\//,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              networkTimeoutSeconds: 5,
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
