@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
@@ -12,6 +12,8 @@ import Onboarding from "@/pages/Onboarding";
 import SuperAdmin from "@/pages/SuperAdmin";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TenantProvider, useTenant } from "@/context/TenantContext";
+import { DemoProvider, useDemo, DEMO_ACTIVATION_CODE } from "@/demo/DemoContext";
+import { DemoBanner } from "@/demo/DemoBanner";
 
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -90,19 +92,85 @@ const AUTH_FEATURES = [
   { icon: "☁️", title: "نظام سحابي", desc: "بياناتك محفوظة وآمنة دائماً" },
 ];
 
+function DemoCodeSection() {
+  const { tryActivateCode } = useDemo();
+  const [, setLocation] = useLocation();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = tryActivateCode(code);
+    if (ok) {
+      setLocation("/");
+    } else {
+      setError("الكود غير صحيح. تواصل مع المندوب للحصول على كود التجربة.");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
+  if (!open) {
+    return (
+      <div className="mt-6 text-center">
+        <div className="h-px bg-slate-200 mb-6" />
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-sm text-slate-400 hover:text-teal-600 transition-colors font-medium"
+        >
+          🔑 لديك كود تجربة؟ انقر هنا
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      <div className="h-px bg-slate-200 mb-6" />
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <p className="text-sm font-bold text-amber-800 mb-1">🎯 وضع التجريبي</p>
+        <p className="text-xs text-amber-600 mb-4">أدخل الكود التجريبي لاستعراض النظام كاملاً</p>
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={code}
+            onChange={e => setCode(e.target.value.toUpperCase())}
+            placeholder="مثال: DEMO2025"
+            className="flex-1 text-sm border border-amber-300 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-amber-500 text-slate-800 font-mono tracking-wider"
+            dir="ltr"
+          />
+          <button
+            type="submit"
+            className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+          >
+            دخول
+          </button>
+        </form>
+        {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs text-amber-500 mt-3 hover:text-amber-700"
+        >
+          إلغاء
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AuthLayout({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
   return (
     <div className="flex min-h-screen w-full" dir="rtl">
       {/* Right panel — Branding */}
       <div className="hidden lg:flex lg:w-[55%] flex-col justify-between bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-14 text-white relative overflow-hidden">
-        {/* Background decorations */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full" />
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-white/5 rounded-full" />
         </div>
 
-        {/* Logo & Brand */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-12">
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -123,7 +191,6 @@ function AuthLayout({ children, title, subtitle }: { children: ReactNode; title:
           </p>
         </div>
 
-        {/* Features */}
         <div className="relative z-10 grid grid-cols-2 gap-4 my-10">
           {AUTH_FEATURES.map((f) => (
             <div key={f.title} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/15 transition-colors">
@@ -134,7 +201,6 @@ function AuthLayout({ children, title, subtitle }: { children: ReactNode; title:
           ))}
         </div>
 
-        {/* Testimonial */}
         <div className="relative z-10 bg-white/10 rounded-2xl p-6 border border-white/10">
           <p className="text-sm leading-relaxed text-teal-50 mb-3">
             "كاشير برو غيّر طريقة إدارة متجرنا كلياً — التقارير اليومية والمخزون أصبحا سهلَين جداً"
@@ -152,7 +218,6 @@ function AuthLayout({ children, title, subtitle }: { children: ReactNode; title:
       {/* Left panel — Form */}
       <div className="flex-1 flex flex-col justify-center items-center bg-slate-50 p-8 lg:p-14">
         <div className="w-full max-w-[440px]">
-          {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-xl">
               <span className="text-xl">🏪</span>
@@ -166,6 +231,8 @@ function AuthLayout({ children, title, subtitle }: { children: ReactNode; title:
           </div>
 
           {children}
+
+          <DemoCodeSection />
         </div>
       </div>
     </div>
@@ -234,10 +301,7 @@ function ClerkQueryClientCacheInvalidator() {
   useEffect(() => {
     const unsubscribe = addListener(({ user }) => {
       const userId = user?.id ?? null;
-      if (
-        prevUserIdRef.current !== undefined &&
-        prevUserIdRef.current !== userId
-      ) {
+      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
         qc.clear();
       }
       prevUserIdRef.current = userId;
@@ -248,11 +312,12 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function AuthenticatedApp() {
+function AppContent() {
   const { i18n } = useTranslation();
   const lang = LANGUAGES.find((l) => l.code === i18n.language);
   const dir = lang?.dir ?? "rtl";
   const { tenant, isLoading } = useTenant();
+  const { isDemoMode } = useDemo();
 
   if (isLoading) {
     return (
@@ -265,34 +330,47 @@ function AuthenticatedApp() {
     );
   }
 
-  if (tenant?.needsOnboarding) {
+  if (!isDemoMode && tenant?.needsOnboarding) {
     return <Onboarding />;
   }
 
   return (
-    <div className="flex min-h-[100dvh] w-full" dir={dir}>
-      <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0">
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/products" component={Products} />
-          <Route path="/sales" component={Sales} />
-          <Route path="/sales/:id" component={SaleDetail} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/inventory" component={Inventory} />
-          <Route path="/inventory/low-stock" component={Inventory} />
-          <Route path="/receive" component={Receive} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/superadmin" component={SuperAdmin} />
-          <Route component={NotFound} />
-        </Switch>
-      </main>
+    <div className="flex min-h-[100dvh] w-full flex-col" dir={dir}>
+      {isDemoMode && <DemoBanner />}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 flex flex-col min-w-0 overflow-auto">
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/products" component={Products} />
+            <Route path="/sales" component={Sales} />
+            <Route path="/sales/:id" component={SaleDetail} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/inventory" component={Inventory} />
+            <Route path="/inventory/low-stock" component={Inventory} />
+            <Route path="/receive" component={Receive} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/settings" component={Settings} />
+            <Route path="/superadmin" component={SuperAdmin} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
     </div>
   );
 }
 
 function AppRoutes() {
+  const { isDemoMode } = useDemo();
+
+  if (isDemoMode) {
+    return (
+      <TenantProvider>
+        <AppContent />
+      </TenantProvider>
+    );
+  }
+
   return (
     <>
       <Show when="signed-out">
@@ -300,7 +378,7 @@ function AppRoutes() {
       </Show>
       <Show when="signed-in">
         <TenantProvider>
-          <AuthenticatedApp />
+          <AppContent />
         </TenantProvider>
       </Show>
     </>
@@ -337,7 +415,9 @@ function ClerkProviderWithRoutes() {
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      <DemoProvider>
+        <ClerkProviderWithRoutes />
+      </DemoProvider>
     </WouterRouter>
   );
 }

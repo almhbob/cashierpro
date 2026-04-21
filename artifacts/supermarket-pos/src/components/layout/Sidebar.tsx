@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { useTranslation } from "react-i18next";
 import { 
   Calculator, 
   PackageSearch, 
@@ -15,13 +14,14 @@ import {
   Crown,
   Store,
   Clock,
-  ChevronLeft
+  ChevronLeft,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTenant, PLAN_LABELS } from "@/context/TenantContext";
+import { useDemo } from "@/demo/DemoContext";
 
 const NAV_GROUPS = [
   {
@@ -58,20 +58,22 @@ export function Sidebar() {
   const [location] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const { t } = useTranslation();
   const { tenant } = useTenant();
+  const { isDemoMode, exitDemo } = useDemo();
 
-  const displayName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "كاشير"
-    : "...";
+  const displayName = isDemoMode
+    ? "محمد المندوب"
+    : (user
+        ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "كاشير"
+        : "...");
 
   const plan = tenant?.plan ?? "starter";
   const planLabel = PLAN_LABELS[plan];
   const trialDaysLeft = tenant?.trialDaysLeft ?? null;
-  const isTrialWarning = tenant?.status === "trial" && trialDaysLeft !== null && trialDaysLeft <= 7;
+  const isTrialWarning = !isDemoMode && tenant?.status === "trial" && trialDaysLeft !== null && trialDaysLeft <= 7;
 
   return (
-    <aside className="w-72 border-l border-slate-200 bg-white flex flex-col h-screen sticky top-0 shadow-sm" dir="rtl">
+    <aside className="w-72 border-l border-slate-200 bg-white flex flex-col h-full sticky top-0 shadow-sm" dir="rtl">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-slate-100">
         <div className="flex items-center gap-3">
@@ -83,12 +85,19 @@ export function Sidebar() {
               {tenant?.name ?? "جاري التحميل..."}
             </p>
             <div className="flex items-center gap-2 mt-1">
-              <span className={cn(
-                "text-[11px] px-2 py-0.5 rounded-full border font-semibold",
-                PLAN_COLORS[plan]
-              )}>
-                {planLabel.ar}
-              </span>
+              {isDemoMode ? (
+                <span className="text-[11px] px-2 py-0.5 rounded-full border font-semibold bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
+                  <FlaskConical className="h-2.5 w-2.5" />
+                  وضع تجريبي
+                </span>
+              ) : (
+                <span className={cn(
+                  "text-[11px] px-2 py-0.5 rounded-full border font-semibold",
+                  PLAN_COLORS[plan]
+                )}>
+                  {planLabel.ar}
+                </span>
+              )}
               {isTrialWarning && (
                 <span className="text-[11px] text-amber-600 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -132,66 +141,93 @@ export function Sidebar() {
           </div>
         ))}
 
-        {/* Admin section */}
-        <div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-            النظام
-          </p>
-          <div className="space-y-0.5">
-            <Link href="/settings">
-              <div className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
-                location === "/settings"
-                  ? "bg-teal-600 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}>
-                <Settings2 className={cn(
-                  "h-[18px] w-[18px] shrink-0",
-                  location === "/settings" ? "text-white" : "text-slate-400 group-hover:text-teal-600"
-                )} />
-                <span className="text-sm font-medium">الإعدادات</span>
-              </div>
-            </Link>
-            <Link href="/superadmin">
-              <div className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
-                location === "/superadmin"
-                  ? "bg-amber-500 text-white shadow-sm"
-                  : "text-amber-600 hover:bg-amber-50"
-              )}>
-                <Crown className="h-[18px] w-[18px] shrink-0" />
-                <span className="text-sm font-medium">إدارة المنصة</span>
-              </div>
-            </Link>
+        {/* Admin section — hide in demo mode */}
+        {!isDemoMode && (
+          <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
+              النظام
+            </p>
+            <div className="space-y-0.5">
+              <Link href="/settings">
+                <div className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
+                  location === "/settings"
+                    ? "bg-teal-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}>
+                  <Settings2 className={cn(
+                    "h-[18px] w-[18px] shrink-0",
+                    location === "/settings" ? "text-white" : "text-slate-400 group-hover:text-teal-600"
+                  )} />
+                  <span className="text-sm font-medium">الإعدادات</span>
+                </div>
+              </Link>
+              <Link href="/superadmin">
+                <div className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
+                  location === "/superadmin"
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "text-amber-600 hover:bg-amber-50"
+                )}>
+                  <Crown className="h-[18px] w-[18px] shrink-0" />
+                  <span className="text-sm font-medium">إدارة المنصة</span>
+                </div>
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </nav>
 
       {/* User Footer */}
       <div className="px-4 py-4 border-t border-slate-100 space-y-3">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-slate-50">
-          <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-            <UserCircle2 className="h-5 w-5 text-teal-600" />
+        <div className={cn(
+          "flex items-center gap-3 px-2 py-2 rounded-xl",
+          isDemoMode ? "bg-amber-50" : "bg-slate-50"
+        )}>
+          <div className={cn(
+            "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+            isDemoMode ? "bg-amber-100" : "bg-teal-100"
+          )}>
+            {isDemoMode
+              ? <FlaskConical className="h-5 w-5 text-amber-600" />
+              : <UserCircle2 className="h-5 w-5 text-teal-600" />
+            }
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-slate-700 truncate">{displayName}</p>
-            <p className="text-xs text-slate-400">كاشير</p>
+            <p className={cn("text-xs", isDemoMode ? "text-amber-500" : "text-slate-400")}>
+              {isDemoMode ? "وضع تجريبي" : "كاشير"}
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <LanguageSwitcher />
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 shrink-0"
-            title="تسجيل الخروج"
-            onClick={() => signOut({ redirectUrl: window.location.origin + (import.meta.env.BASE_URL || "/") })}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          {!isDemoMode && (
+            <div className="flex-1">
+              <LanguageSwitcher />
+            </div>
+          )}
+          {isDemoMode ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-9 text-amber-600 hover:bg-amber-50 text-xs font-semibold gap-1.5"
+              onClick={exitDemo}
+            >
+              <LogOut className="h-4 w-4" />
+              إنهاء التجربة
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+              title="تسجيل الخروج"
+              onClick={() => signOut({ redirectUrl: window.location.origin + (import.meta.env.BASE_URL || "/") })}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </aside>
