@@ -47,3 +47,22 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Secrets & env overrides (never commit passwords)
+.env
+.env.local
+.env.production
+
+# Desktop app build output
+desktop-app/dist-exe/
+desktop-app/node_modules/
+desktop-app/renderer/
+desktop-app/src/local-server-data/
+
+# Build artifacts
+artifacts/*/dist/
+artifacts/api-server/dist/
+
+# Logs
+*.log
+logs/
