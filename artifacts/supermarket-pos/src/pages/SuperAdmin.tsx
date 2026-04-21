@@ -10,6 +10,8 @@ import {
   DollarSign, RefreshCw, CheckCircle2, XCircle, Clock, ArrowUpRight, Shield,
   Key, Laptop, AlertTriangle, Trash2, CalendarPlus, Copy, ChevronDown, ChevronUp,
   RotateCcw, Lock, Unlock, PlusCircle, FileKey2, Database, BarChart3,
+  User, Mail, Phone, MessageCircle, Edit3, Save, X as XIcon, Award, GraduationCap,
+  Globe, HeartHandshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDevPortal } from "@/context/DevPortalContext";
@@ -58,6 +60,7 @@ const TABS = [
   { id: "stores",     label: "المتاجر",       Icon: Store },
   { id: "isolation",  label: "عزل البيانات",  Icon: Shield },
   { id: "licenses",   label: "التراخيص",      Icon: FileKey2 },
+  { id: "developer",  label: "المطور",         Icon: User },
 ];
 
 /* ── Helpers ─────────────────────────────────────── */
@@ -323,6 +326,9 @@ export default function SuperAdmin() {
             onCreate={() => qc.invalidateQueries({ queryKey: ["superadmin", "licenses"] })}
           />
         )}
+
+        {/* ── Developer Tab ─────────────────────────── */}
+        {tab === "developer" && <DeveloperTab />}
 
       </div>
     </div>
@@ -679,4 +685,298 @@ function LicensesTab({ licenses, isLoading, onRevoke, onDelete, onRefresh, onCre
 function isExpiredStr(d: string | null): boolean {
   if (!d) return false;
   return new Date(d) < new Date();
+}
+
+/* ═══════════════════════════════════════════════════
+   Developer Tab — Profile + Editable Contact Info
+   ═══════════════════════════════════════════════════ */
+
+const CERTS = [
+  { title: "Google Advanced Data Analytics", org: "Google / Coursera", year: "2026", color: "bg-blue-50 border-blue-200 text-blue-700" },
+  { title: "IBM Cybersecurity Specialist", org: "IBM / Coursera", year: "2026", color: "bg-red-50 border-red-200 text-red-700" },
+  { title: "Google Data Analytics Professional", org: "Google / Coursera", year: "2026", color: "bg-green-50 border-green-200 text-green-700" },
+  { title: "Cybersecurity Fundamentals", org: "IBM SkillsBuild", year: "2024", color: "bg-purple-50 border-purple-200 text-purple-700" },
+  { title: "Introduction to Threat Landscape 2.0", org: "Fortinet", year: "2025", color: "bg-orange-50 border-orange-200 text-orange-700" },
+  { title: "Introduction to Data Science", org: "Cisco", year: "2025", color: "bg-teal-50 border-teal-200 text-teal-700" },
+  { title: "Cloud DevOps", org: "Intel", year: "2025", color: "bg-indigo-50 border-indigo-200 text-indigo-700" },
+  { title: "Agile Explorer", org: "IBM SkillsBuild", year: "2025", color: "bg-amber-50 border-amber-200 text-amber-700" },
+];
+
+const DEFAULTS: Record<string, string> = {
+  contact_email: "Almhbob.iii@gmail.com",
+  contact_phone: "0530658285",
+  contact_whatsapp: "0530658285",
+  support_hours: "السبت – الخميس، ٩ص – ٦م",
+  system_name: "كاشير برو — CashierPro",
+  support_note: "",
+};
+
+function DeveloperTab() {
+  const { apiBase, devHeaders } = useDevPortal();
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>(DEFAULTS);
+
+  const configQ = useQuery<Record<string, string>>({
+    queryKey: ["dev-system-config", apiBase],
+    queryFn: () =>
+      fetch(`${apiBase}/system-config`, { headers: devHeaders }).then(r => r.json()),
+  });
+
+  /* Merge DB values with defaults whenever query loads */
+  const merged = { ...DEFAULTS, ...(configQ.data ?? {}) };
+
+  /* Init form when entering edit mode */
+  function startEdit() { setForm(merged); setEditing(true); }
+  function cancelEdit() { setEditing(false); }
+
+  async function saveConfig() {
+    setSaving(true);
+    try {
+      const r = await fetch(`${apiBase}/system-config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...devHeaders },
+        body: JSON.stringify(form),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      await configQ.refetch();
+      setEditing(false);
+      toast({ title: "✅ تم حفظ بيانات التواصل" });
+    } catch (e) {
+      toast({ title: "خطأ في الحفظ", description: String(e), variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const field = (key: string) => (editing ? form[key] : merged[key]) ?? "";
+  const setField = (key: string, v: string) => setForm(f => ({ ...f, [key]: v }));
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" dir="rtl">
+
+      {/* ── Left column: Static profile ──────────── */}
+      <div className="lg:col-span-2 space-y-5">
+
+        {/* Profile card */}
+        <Card className="overflow-hidden">
+          <div className="h-24 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900" />
+          <CardContent className="relative px-6 pb-6">
+            <div className="absolute -top-10 right-6 w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg border-4 border-white">
+              <span className="text-3xl font-black text-white">عا</span>
+            </div>
+            <div className="pt-12">
+              <h2 className="text-xl font-black text-slate-800">عاصم عبدالرحمن محمد</h2>
+              <p className="text-sm text-slate-500 mt-0.5">مطوّر النظام وصاحب المنتج</p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Full-Stack Developer</Badge>
+                <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Data Analytics</Badge>
+                <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Cybersecurity</Badge>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mt-4 leading-relaxed">
+              مطوّر ومحلل بيانات سعودي متخصص في بناء أنظمة نقاط البيع والحلول السحابية للمتاجر.
+              حاصل على شهادات مهنية معتمدة في تحليل البيانات والأمن السيبراني من Google وIBM وCisco.
+            </p>
+            <a
+              href="https://www.credly.com/users/asim-abdulrahman"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-3 text-xs text-teal-600 hover:text-teal-800 font-medium"
+            >
+              <Globe className="h-3 w-3" />
+              www.credly.com/users/asim-abdulrahman
+            </a>
+          </CardContent>
+        </Card>
+
+        {/* System info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2 text-slate-700">
+              <Database className="h-4 w-4 text-teal-600" />
+              عن النظام
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-500">اسم النظام</span>
+              <span className="font-medium text-slate-800">{merged.system_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">النوع</span>
+              <span className="font-medium text-slate-800">SaaS — نقطة بيع سحابية</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">اللغات</span>
+              <span className="font-medium text-slate-800">العربية • English • हिंदी • বাং</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">قاعدة البيانات</span>
+              <span className="font-medium text-slate-800">PostgreSQL + Drizzle ORM</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">المصادقة</span>
+              <span className="font-medium text-slate-800">Clerk (OAuth)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">نسخة EXE</span>
+              <span className="font-medium text-slate-800">Electron 29 + SQLite</span>
+            </div>
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* ── Right column: Editable contact + certs ── */}
+      <div className="lg:col-span-3 space-y-5">
+
+        {/* Contact / Support card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2 text-slate-700">
+                <HeartHandshake className="h-4 w-4 text-teal-600" />
+                بيانات التواصل والدعم
+              </CardTitle>
+              {!editing ? (
+                <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={startEdit}>
+                  <Edit3 className="h-3.5 w-3.5" />
+                  تعديل
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={cancelEdit}>
+                    <XIcon className="h-3.5 w-3.5" />
+                    إلغاء
+                  </Button>
+                  <Button size="sm" className="gap-1.5 h-8 text-xs bg-teal-600 hover:bg-teal-700" onClick={saveConfig} disabled={saving}>
+                    <Save className="h-3.5 w-3.5" />
+                    {saving ? "جاري الحفظ..." : "حفظ"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+
+            {/* System name */}
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">اسم النظام / المنتج</label>
+              {editing ? (
+                <Input value={field("system_name")} onChange={e => setField("system_name", e.target.value)} className="text-sm" />
+              ) : (
+                <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg text-sm font-medium text-slate-800">
+                  <Database className="h-4 w-4 text-slate-400" />
+                  {field("system_name")}
+                </div>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">البريد الإلكتروني</label>
+              {editing ? (
+                <Input value={field("contact_email")} onChange={e => setField("contact_email", e.target.value)} dir="ltr" className="text-sm" type="email" />
+              ) : (
+                <a href={`mailto:${field("contact_email")}`} className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg text-sm font-medium text-teal-700 hover:bg-teal-50 transition-colors">
+                  <Mail className="h-4 w-4 text-slate-400" />
+                  {field("contact_email")}
+                </a>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">رقم الجوال</label>
+              {editing ? (
+                <Input value={field("contact_phone")} onChange={e => setField("contact_phone", e.target.value)} dir="ltr" className="text-sm" type="tel" />
+              ) : (
+                <a href={`tel:${field("contact_phone")}`} className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg text-sm font-medium text-slate-800 hover:bg-slate-100 transition-colors">
+                  <Phone className="h-4 w-4 text-slate-400" />
+                  {field("contact_phone")}
+                </a>
+              )}
+            </div>
+
+            {/* WhatsApp */}
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">واتساب (رقم بالصيغة الدولية بدون +)</label>
+              {editing ? (
+                <Input value={field("contact_whatsapp")} onChange={e => setField("contact_whatsapp", e.target.value)} dir="ltr" className="text-sm" placeholder="مثال: 966530658285" />
+              ) : (
+                <a
+                  href={`https://wa.me/${field("contact_whatsapp").replace(/^0/, "966")}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-2.5 bg-green-50 rounded-lg text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4 text-green-500" />
+                  واتساب: {field("contact_whatsapp")}
+                </a>
+              )}
+            </div>
+
+            {/* Support hours */}
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">ساعات الدعم</label>
+              {editing ? (
+                <Input value={field("support_hours")} onChange={e => setField("support_hours", e.target.value)} className="text-sm" />
+              ) : (
+                <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg text-sm font-medium text-slate-800">
+                  <Clock className="h-4 w-4 text-slate-400" />
+                  {field("support_hours")}
+                </div>
+              )}
+            </div>
+
+            {/* Support note */}
+            <div>
+              <label className="text-xs font-medium text-slate-500 mb-1 block">ملاحظة دعم (اختياري)</label>
+              {editing ? (
+                <textarea
+                  value={field("support_note")}
+                  onChange={e => setField("support_note", e.target.value)}
+                  rows={3}
+                  placeholder="مثال: للاستفسارات العاجلة تواصل عبر واتساب"
+                  className="w-full text-sm border border-input rounded-md px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                />
+              ) : field("support_note") ? (
+                <div className="p-2.5 bg-amber-50 border border-amber-100 rounded-lg text-sm text-amber-800 leading-relaxed">
+                  {field("support_note")}
+                </div>
+              ) : (
+                <div className="p-2.5 bg-slate-50 rounded-lg text-sm text-slate-400 italic">لا توجد ملاحظة</div>
+              )}
+            </div>
+
+          </CardContent>
+        </Card>
+
+        {/* Certifications */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2 text-slate-700">
+              <GraduationCap className="h-4 w-4 text-amber-600" />
+              الشهادات المهنية المعتمدة
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {CERTS.map((c) => (
+                <div key={c.title} className={cn("flex items-start gap-2.5 p-3 rounded-xl border text-xs", c.color)}>
+                  <Award className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold leading-snug">{c.title}</p>
+                    <p className="opacity-70 mt-0.5">{c.org} — {c.year}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+      </div>
+    </div>
+  );
 }
