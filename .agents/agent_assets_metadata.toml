@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "hGR9P4PeMCDdxbheDzOYn"
+uri = "file://PROJECT_DETAILS.md"
+type = "text"
+title = "كاشير برو — ملف التفاصيل المهمة"
