@@ -12,8 +12,8 @@
   },
   "build": {
     "appId": "com.cashierpro.desktop",
-    "productName": "كاشير برو",
-    "copyright": "حقوق محفوظة 2025 كاشير برو",
+    "productName": "CashierPro",
+    "copyright": "Copyright 2025 CashierPro",
     "asar": true,
     "directories": {
       "output": "dist-exe",
@@ -27,9 +27,8 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64", "ia32"] }
+        { "target": "nsis", "arch": ["x64"] }
       ],
-      "icon": "build/icon.ico",
       "artifactName": "CashierPro-Setup-${version}.exe",
       "requestedExecutionLevel": "asInvoker"
     },
@@ -39,10 +38,6 @@
       "allowElevation": true,
       "installerLanguages": ["Arabic"],
       "language": "1025",
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
-      "installerHeader": "build/header.bmp",
-      "installerSidebar": "build/sidebar.bmp",
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "كاشير برو",
@@ -50,7 +45,6 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "build/icon.icns",
       "category": "public.app-category.business"
     }
   },

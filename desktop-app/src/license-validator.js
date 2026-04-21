@@ -9,7 +9,8 @@ const fs = require("fs");
 const path = require("path");
 const { machineIdSync } = require("node-machine-id");
 
-const ACTIVATION_SERVER = "https://YOUR_DOMAIN/api/superadmin/licenses";
+// Set at build time via electron-builder env or hardcode your deployed URL here:
+const ACTIVATION_SERVER = (process.env.APP_LICENSE_URL || "https://cashierpro.replit.app") + "/api/superadmin/licenses";
 const LICENSE_FILE = path.join(require("electron").app.getPath("userData"), "license.json");
 
 function getMachineId() {

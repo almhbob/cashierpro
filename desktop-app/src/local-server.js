@@ -80,6 +80,13 @@ function startServer(port = 7777) {
   expressApp.use(cors());
   expressApp.use(express.json());
 
+  /* ── Static frontend (React build) ─ */
+  const distPath = path.join(__dirname, "../renderer/dist");
+  const fs = require("fs");
+  if (fs.existsSync(distPath)) {
+    expressApp.use(express.static(distPath));
+  }
+
   /* ── Products ─────────────────────── */
   expressApp.get("/api/products", (req, res) => {
     const { q, barcode } = req.query;
@@ -190,6 +197,14 @@ function startServer(port = 7777) {
     const lowStock = db.prepare("SELECT count(*) as c FROM products WHERE stock <= 5").get().c;
     res.json({ todayTransactions: todaySales.c, todaySales: todaySales.t, totalProducts, lowStockCount: lowStock, monthlySales: 0, monthlyTransactions: 0 });
   });
+
+  /* ── SPA fallback: serve index.html for non-API routes ─ */
+  if (fs.existsSync(distPath)) {
+    expressApp.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/")) return next();
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
 
   server = expressApp.listen(port, "127.0.0.1", () => {
     console.log(`[LocalServer] Listening on port ${port}`);

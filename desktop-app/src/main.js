@@ -16,6 +16,20 @@ let localPort = null;
 app.setName("كاشير برو");
 app.setAppUserModelId("com.cashierpro.desktop");
 
+// Cloud URL used for the main POS window (set at build time)
+const APP_URL = process.env.APP_URL || "https://cashierpro.replit.app";
+
+// Check if the local React build is available (renderer/dist/index.html)
+const { existsSync } = require("fs");
+const RENDERER_DIST = path.join(__dirname, "../renderer/dist/index.html");
+const HAS_LOCAL_FRONTEND = existsSync(RENDERER_DIST);
+
+// Icon path (optional — gracefully skip if missing)
+const ICON_PATH = (() => {
+  const p = path.join(__dirname, "../build/icon.ico");
+  try { require("fs").accessSync(p); return p; } catch { return undefined; }
+})();
+
 /* ─── Window Factories ────────────────────────── */
 function createLicenseWindow() {
   licenseWindow = new BrowserWindow({
@@ -24,7 +38,7 @@ function createLicenseWindow() {
     resizable: false,
     center: true,
     title: "تفعيل كاشير برو",
-    icon: path.join(__dirname, "../build/icon.ico"),
+    ...(ICON_PATH ? { icon: ICON_PATH } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -45,18 +59,24 @@ function createMainWindow() {
     minHeight: 700,
     center: true,
     title: "كاشير برو",
-    icon: path.join(__dirname, "../build/icon.ico"),
+    ...(ICON_PATH ? { icon: ICON_PATH } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // Allow the cloud URL to use session cookies
+      partition: "persist:cashierpro",
     },
     autoHideMenuBar: true,
     show: false,
   });
 
   mainWindow.once("ready-to-show", () => mainWindow.show());
-  mainWindow.loadURL(`http://127.0.0.1:${localPort}`);
+  // Load local server (offline) if frontend is bundled, otherwise use cloud URL
+  const loadTarget = HAS_LOCAL_FRONTEND
+    ? `http://127.0.0.1:${localPort}`
+    : APP_URL;
+  mainWindow.loadURL(loadTarget);
   mainWindow.on("closed", () => { mainWindow = null; });
 }
 
