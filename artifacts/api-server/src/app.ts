@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import { clerkMiddleware, getAuth } from "@clerk/express";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import devPortalRouter from "./routes/dev-portal";
 import { logger } from "./lib/logger";
 import { attachTenant } from "./middleware/tenant";
 
@@ -47,6 +48,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+app.use("/api/dev", devPortalRouter);
 app.use("/api", requireAuth, attachTenant, router);
 
 export default app;

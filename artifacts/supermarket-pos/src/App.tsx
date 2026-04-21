@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import Settings from "@/pages/Settings";
 import Onboarding from "@/pages/Onboarding";
 import SuperAdmin from "@/pages/SuperAdmin";
+import DevPortal from "@/pages/DevPortal";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TenantProvider, useTenant } from "@/context/TenantContext";
 import { DemoProvider, useDemo, DEMO_ACTIVATION_CODE } from "@/demo/DemoContext";
@@ -401,6 +402,7 @@ function ClerkProviderWithRoutes() {
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
           <Switch>
+            <Route path="/dev" component={DevPortal} />
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route component={AppRoutes} />

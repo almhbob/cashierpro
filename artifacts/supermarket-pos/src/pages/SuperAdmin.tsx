@@ -12,6 +12,7 @@ import {
   RotateCcw, Lock, Unlock, PlusCircle, FileKey2, Database, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDevPortal } from "@/context/DevPortalContext";
 
 /* ── Types ───────────────────────────────────────── */
 interface StoreSummary {
@@ -74,47 +75,55 @@ export default function SuperAdmin() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [tab, setTab] = useState("overview");
+  const { apiBase, devHeaders } = useDevPortal();
+
+  function apiFetch(path: string, init?: RequestInit) {
+    return fetch(`${apiBase}${path}`, {
+      ...init,
+      headers: { ...devHeaders, ...(init?.headers ?? {}) },
+    });
+  }
 
   function invalidate() { qc.invalidateQueries({ queryKey: ["superadmin"] }); }
 
   /* ── Queries ── */
   const overviewQ = useQuery<Overview>({
-    queryKey: ["superadmin", "overview"],
-    queryFn: () => fetch("/api/superadmin/overview").then(r => r.json()),
+    queryKey: ["superadmin", "overview", apiBase],
+    queryFn: () => apiFetch("/overview").then(r => r.json()),
   });
   const licensesQ = useQuery<License[]>({
-    queryKey: ["superadmin", "licenses"],
-    queryFn: () => fetch("/api/superadmin/licenses").then(r => r.json()),
+    queryKey: ["superadmin", "licenses", apiBase],
+    queryFn: () => apiFetch("/licenses").then(r => r.json()),
     enabled: tab === "licenses",
   });
   const isolationQ = useQuery<IsolationReport>({
-    queryKey: ["superadmin", "isolation"],
-    queryFn: () => fetch("/api/superadmin/isolation-check").then(r => r.json()),
+    queryKey: ["superadmin", "isolation", apiBase],
+    queryFn: () => apiFetch("/isolation-check").then(r => r.json()),
     enabled: tab === "isolation",
   });
 
   /* ── Mutations ── */
   const planM = useMutation({
     mutationFn: ({ id, plan, status }: { id: string; plan?: string; status?: string }) =>
-      fetch(`/api/superadmin/stores/${id}/plan`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, status }) }).then(r => r.json()),
+      apiFetch(`/stores/${id}/plan`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan, status }) }).then(r => r.json()),
     onSuccess: () => { invalidate(); toast({ title: "تم تحديث المتجر" }); },
   });
   const extendM = useMutation({
     mutationFn: ({ id, days }: { id: string; days: number }) =>
-      fetch(`/api/superadmin/stores/${id}/extend-trial`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ days }) }).then(r => r.json()),
+      apiFetch(`/stores/${id}/extend-trial`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ days }) }).then(r => r.json()),
     onSuccess: () => { invalidate(); toast({ title: "تم تمديد الفترة التجريبية" }); },
   });
   const deleteStoreM = useMutation({
-    mutationFn: (id: string) => fetch(`/api/superadmin/stores/${id}`, { method: "DELETE" }).then(r => r.json()),
+    mutationFn: (id: string) => apiFetch(`/stores/${id}`, { method: "DELETE" }).then(r => r.json()),
     onSuccess: () => { invalidate(); toast({ title: "تم حذف المتجر" }); },
   });
   const revokeM = useMutation({
     mutationFn: ({ id, restore }: { id: string; restore: boolean }) =>
-      fetch(`/api/superadmin/licenses/${id}/${restore ? "restore" : "revoke"}`, { method: "PATCH" }).then(r => r.json()),
+      apiFetch(`/licenses/${id}/${restore ? "restore" : "revoke"}`, { method: "PATCH" }).then(r => r.json()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "licenses"] }); toast({ title: "تم تحديث الترخيص" }); },
   });
   const deleteLicenseM = useMutation({
-    mutationFn: (id: string) => fetch(`/api/superadmin/licenses/${id}`, { method: "DELETE" }).then(r => r.json()),
+    mutationFn: (id: string) => apiFetch(`/licenses/${id}`, { method: "DELETE" }).then(r => r.json()),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "licenses"] }); toast({ title: "تم حذف الترخيص" }); },
   });
 
@@ -486,14 +495,15 @@ function LicensesTab({ licenses, isLoading, onRevoke, onDelete, onRefresh, onCre
   onCreate: () => void;
 }) {
   const { toast } = useToast();
+  const { apiBase, devHeaders } = useDevPortal();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ storeName: "", storePhone: "", type: "trial", days: 30, notes: "" });
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const generateM = useMutation({
-    mutationFn: () => fetch("/api/superadmin/licenses/generate", {
+    mutationFn: () => fetch(`${apiBase}/licenses/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...devHeaders },
       body: JSON.stringify(form),
     }).then(r => r.json()),
     onSuccess: (data) => {
