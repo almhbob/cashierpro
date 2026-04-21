@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { tenantsTable, tenantMembersTable, tenantSettingsTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { tenantsTable, tenantMembersTable, tenantSettingsTable, desktopLicensesTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 import { PLAN_LIMITS } from "../middleware/tenant";
 
 const router = Router();
@@ -17,6 +17,26 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   currency: "SAR",
   vatRate: "15",
 };
+
+/* ── License key validation helper ───────────── */
+async function validateLicenseKey(key: string): Promise<{ valid: boolean; reason?: string; license?: any }> {
+  if (!key?.trim()) return { valid: false, reason: "no_key" };
+
+  const [license] = await db
+    .select()
+    .from(desktopLicensesTable)
+    .where(eq(desktopLicensesTable.key, key.trim().toUpperCase()))
+    .limit(1);
+
+  if (!license) return { valid: false, reason: "not_found" };
+  if (license.isRevoked) return { valid: false, reason: "revoked" };
+  if (license.expiresAt && new Date(license.expiresAt) < new Date()) return { valid: false, reason: "expired" };
+
+  // Check not already used for a cloud tenant
+  if (license.machineId?.startsWith("CLOUD:")) return { valid: false, reason: "already_used" };
+
+  return { valid: true, license };
+}
 
 /* GET /api/tenants/me */
 router.get("/me", async (req, res) => {
@@ -36,7 +56,7 @@ router.get("/me", async (req, res) => {
 /* PUT /api/tenants/me — update store info */
 router.put("/me", async (req, res) => {
   const tenantId = (req as any).tenantId;
-  const { name, nameEn, slug } = req.body ?? {};
+  const { name, nameEn } = req.body ?? {};
   await db.update(tenantsTable)
     .set({ name, nameEn, needsOnboarding: false })
     .where(eq(tenantsTable.id, tenantId));
@@ -44,31 +64,82 @@ router.put("/me", async (req, res) => {
   res.json(tenant);
 });
 
+/* POST /api/tenants/me/check-license — validate key before onboarding */
+router.post("/me/check-license", async (req, res) => {
+  const { licenseKey } = req.body ?? {};
+  const result = await validateLicenseKey(licenseKey);
+
+  if (!result.valid) {
+    const messages: Record<string, string> = {
+      no_key:       "يرجى إدخال مفتاح الترخيص",
+      not_found:    "مفتاح الترخيص غير صحيح",
+      revoked:      "تم إلغاء هذا الترخيص",
+      expired:      "انتهت صلاحية هذا الترخيص",
+      already_used: "هذا المفتاح مستخدم بالفعل لمتجر آخر",
+    };
+    res.status(400).json({ valid: false, reason: result.reason, message: messages[result.reason!] ?? "مفتاح غير صالح" });
+    return;
+  }
+
+  res.json({ valid: true, storeName: result.license?.storeName, type: result.license?.type });
+});
+
 /* POST /api/tenants/me/complete-onboarding */
 router.post("/me/complete-onboarding", async (req, res) => {
   const tenantId = (req as any).tenantId;
-  const { name, nameEn, phone, address, vatNumber } = req.body ?? {};
+  const { name, nameEn, phone, address, vatNumber, licenseKey } = req.body ?? {};
 
-  await db.update(tenantsTable).set({ name, nameEn, needsOnboarding: false }).where(eq(tenantsTable.id, tenantId));
+  // Validate license key before completing
+  const licenseCheck = await validateLicenseKey(licenseKey);
+  if (!licenseCheck.valid) {
+    const messages: Record<string, string> = {
+      no_key:       "يرجى إدخال مفتاح الترخيص",
+      not_found:    "مفتاح الترخيص غير صحيح",
+      revoked:      "تم إلغاء هذا الترخيص",
+      expired:      "انتهت صلاحية هذا الترخيص",
+      already_used: "هذا المفتاح مستخدم بالفعل لمتجر آخر",
+    };
+    res.status(400).json({
+      error: messages[licenseCheck.reason!] ?? "مفتاح الترخيص غير صالح",
+      reason: licenseCheck.reason,
+    });
+    return;
+  }
+
+  // Mark license as used by this cloud tenant
+  await db.update(desktopLicensesTable)
+    .set({ machineId: `CLOUD:${tenantId}`, activatedAt: new Date() })
+    .where(eq(desktopLicensesTable.id, licenseCheck.license!.id));
+
+  // Determine plan from license type
+  const planMap: Record<string, string> = { trial: "starter", annual: "professional", lifetime: "enterprise" };
+  const plan = planMap[licenseCheck.license!.type] ?? "starter";
+
+  await db.update(tenantsTable)
+    .set({ name, nameEn, needsOnboarding: false, plan: plan as any, status: "active" })
+    .where(eq(tenantsTable.id, tenantId));
 
   const settingsToSave = [
-    { key: "storeName", value: name || "متجري" },
-    { key: "storeNameEn", value: nameEn || "My Store" },
-    { key: "phone", value: phone || "" },
-    { key: "address", value: address || "" },
-    { key: "vatNumber", value: vatNumber || "" },
-    { key: "receiptHeader", value: "أهلاً وسهلاً بكم" },
-    { key: "receiptFooter", value: "شكراً لزيارتكم" },
-    { key: "currency", value: "SAR" },
-    { key: "vatRate", value: "15" },
+    { key: "storeName",      value: name || "متجري" },
+    { key: "storeNameEn",    value: nameEn || "My Store" },
+    { key: "phone",          value: phone || "" },
+    { key: "address",        value: address || "" },
+    { key: "vatNumber",      value: vatNumber || "" },
+    { key: "receiptHeader",  value: "أهلاً وسهلاً بكم" },
+    { key: "receiptFooter",  value: "شكراً لزيارتكم" },
+    { key: "currency",       value: "SAR" },
+    { key: "vatRate",        value: "15" },
   ];
 
   for (const s of settingsToSave) {
     await db.insert(tenantSettingsTable).values({ tenantId, key: s.key, value: s.value })
-      .onConflictDoUpdate({ target: [tenantSettingsTable.tenantId, tenantSettingsTable.key], set: { value: s.value, updatedAt: new Date() } });
+      .onConflictDoUpdate({
+        target: [tenantSettingsTable.tenantId, tenantSettingsTable.key],
+        set: { value: s.value, updatedAt: new Date() },
+      });
   }
 
-  res.json({ success: true });
+  res.json({ success: true, plan });
 });
 
 /* GET /api/tenants/me/settings */
