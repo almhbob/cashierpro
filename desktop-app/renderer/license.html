@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تفعيل كاشير برو</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #0d9488 0%, #064e3b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e293b;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 440px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #0d9488, #059669);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 20px rgba(13,148,136,0.3);
+    }
+    h1 { font-size: 22px; font-weight: 800; color: #0f172a; }
+    .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .machine-id-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin: 20px 0;
+    }
+    .machine-id-box label { font-size: 11px; font-weight: 700; color: #64748b; display: block; margin-bottom: 4px; }
+    .machine-id-box .id {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #0d9488;
+      word-break: break-all;
+      cursor: pointer;
+    }
+    .machine-id-box .copy-hint { font-size: 10px; color: #94a3b8; margin-top: 4px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .form-group input {
+      width: 100%;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #0f172a;
+      outline: none;
+      transition: border-color 0.2s;
+      direction: ltr;
+      text-align: center;
+    }
+    .form-group input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+    .form-group input.error { border-color: #ef4444; }
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, #0d9488, #059669);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #dc2626;
+      margin-top: 12px;
+      display: none;
+    }
+    .success-msg {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 13px;
+      color: #16a34a;
+      margin-top: 12px;
+      display: none;
+      text-align: center;
+    }
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .footer a { color: #0d9488; text-decoration: none; font-weight: 600; }
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🏪</div>
+      <h1>كاشير برو</h1>
+      <p class="subtitle">CashierPro — أدخل مفتاح الترخيص للمتابعة</p>
+    </div>
+
+    <div class="machine-id-box">
+      <label>معرّف هذا الجهاز (أرسله للمطوّر)</label>
+      <div class="id" id="machineId" onclick="copyMachineId()" title="انقر للنسخ">جاري التحميل...</div>
+      <div class="copy-hint" id="copyHint">انقر لنسخ المعرّف وإرساله للمطوّر لاسترداد مفتاحك</div>
+    </div>
+
+    <div class="form-group">
+      <label>مفتاح الترخيص</label>
+      <input type="text" id="licenseKey" placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX"
+        maxlength="27" oninput="formatKey(this)" />
+    </div>
+
+    <button class="btn" id="activateBtn" onclick="activate()">
+      🔑 تفعيل الترخيص
+    </button>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <div class="footer">
+      لا يوجد مفتاح؟
+      <a href="#" onclick="contactSupport()">تواصل مع الدعم</a>
+    </div>
+  </div>
+
+  <script>
+    const REASON_MESSAGES = {
+      not_found:    "مفتاح الترخيص غير صحيح. تحقق من الكود وأعد المحاولة.",
+      revoked:      "هذا الترخيص تم إلغاؤه. تواصل مع المطوّر.",
+      wrong_machine:"هذا الترخيص مسجّل على جهاز آخر ولا يمكن استخدامه هنا.",
+      expired:      "انتهت صلاحية هذا الترخيص. تواصل مع المطوّر للتجديد.",
+      network:      "تعذر الاتصال بالخادم. تحقق من الإنترنت وأعد المحاولة.",
+    };
+
+    async function loadMachineId() {
+      const id = await window.cashierPro.getMachineId();
+      document.getElementById("machineId").textContent = id;
+    }
+
+    function copyMachineId() {
+      const id = document.getElementById("machineId").textContent;
+      navigator.clipboard.writeText(id).then(() => {
+        document.getElementById("copyHint").textContent = "✅ تم النسخ!";
+        setTimeout(() => { document.getElementById("copyHint").textContent = "انقر لنسخ المعرّف وإرساله للمطوّر لاسترداد مفتاحك"; }, 2000);
+      });
+    }
+
+    function formatKey(input) {
+      let v = input.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      let formatted = v.match(/.{1,6}/g)?.join("-") ?? v;
+      if (formatted.length > 27) formatted = formatted.slice(0, 27);
+      input.value = formatted;
+    }
+
+    async function activate() {
+      const key = document.getElementById("licenseKey").value.trim();
+      if (key.length < 10) { showError("الرجاء إدخال مفتاح ترخيص صحيح."); return; }
+
+      const btn = document.getElementById("activateBtn");
+      btn.disabled = true;
+      btn.innerHTML = 'جاري التفعيل... <span class="spinner"></span>';
+      hideMessages();
+
+      try {
+        const result = await window.cashierPro.activateLicense(key);
+        if (result.valid) {
+          document.getElementById("successMsg").innerHTML = `✅ تم التفعيل بنجاح!<br>مرحباً بك في كاشير برو — ${result.license.storeName}`;
+          document.getElementById("successMsg").style.display = "block";
+          btn.innerHTML = "✅ تم التفعيل — جاري الفتح...";
+          setTimeout(() => window.cashierPro.launchMainApp(), 1500);
+        } else {
+          showError(REASON_MESSAGES[result.reason] ?? "حدث خطأ غير متوقع. أعد المحاولة.");
+          btn.disabled = false;
+          btn.textContent = "🔑 تفعيل الترخيص";
+        }
+      } catch (e) {
+        showError(REASON_MESSAGES.network);
+        btn.disabled = false;
+        btn.textContent = "🔑 تفعيل الترخيص";
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("errorMsg");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    function hideMessages() {
+      document.getElementById("errorMsg").style.display = "none";
+      document.getElementById("successMsg").style.display = "none";
+    }
+
+    function contactSupport() {
+      window.cashierPro.openExternal("https://wa.me/966500000000?text=مرحبا، أريد تفعيل ترخيص كاشير برو");
+    }
+
+    document.getElementById("licenseKey").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") activate();
+    });
+
+    loadMachineId();
+  </script>
+</body>
+</html>

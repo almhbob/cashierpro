@@ -65,7 +65,42 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 - `POST /api/tenants/me/upgrade` — change plan
 - `GET /api/superadmin/overview` — platform MRR + all stores
 - `PUT /api/superadmin/stores/:id/plan` — upgrade/suspend any store
+- `POST /api/superadmin/stores/:id/extend-trial` — extend trial period
+- `DELETE /api/superadmin/stores/:id` — delete store permanently
+- `GET /api/superadmin/isolation-check` — data isolation health check
+- `GET /api/superadmin/licenses` — all desktop licenses
+- `POST /api/superadmin/licenses/generate` — generate EXE license key
+- `POST /api/superadmin/licenses/activate` — activate license (Electron first run)
+- `POST /api/superadmin/licenses/verify-token` — verify offline machine token
+- `PATCH /api/superadmin/licenses/:id/revoke|restore` — revoke/restore license
+- `DELETE /api/superadmin/licenses/:id` — delete license
 - `GET|PUT /api/admin/settings` — per-tenant settings (via tenantSettingsTable)
+
+### Demo Mode
+- Activated via code `DEMO2025` on sign-in page
+- Intercepts all `/api/` fetch calls with mock data from `src/demo/demoData.ts`
+- Shows DemoBanner (amber) + demo user in Sidebar
+- Hides SuperAdmin link in demo mode
+- Files: `src/demo/DemoContext.tsx`, `src/demo/DemoBanner.tsx`, `src/demo/demoData.ts`
+
+### Desktop App (EXE) — `desktop-app/`
+- Electron 29 + Better-SQLite3 + Express local server (port 7777)
+- License system: machine-bound, online activation, offline operation after first use
+- License types: trial (30d), annual (365d), lifetime
+- Generated from SuperAdmin → Licenses tab
+- Build: `npm run build:win` → `dist-exe/CashierPro-Setup-1.0.0.exe`
+- `src/license-validator.js` — HMAC-based machine token verification
+- `src/local-server.js` — full offline API (products, sales, inventory, settings)
+- `renderer/license.html` — activation UI (no React, pure HTML/JS)
+
+### DB Schema additions (licenses.ts)
+- `desktop_licenses` — id, key (unique), machineId, storeName, storePhone, type (trial/annual/lifetime), expiresAt, activatedAt, notes, isRevoked, createdAt
+
+### SuperAdmin Tabs
+1. **نظرة عامة** — KPI cards (total stores, MRR, active, paid), plan breakdown, revenue projection
+2. **المتاجر** — Store rows with expand/collapse, plan change, trial extend, suspend, delete
+3. **عزل البيانات** — Isolation health check per tenant (orphan products/sales detector)
+4. **التراخيص** — Desktop license management, generate/revoke/restore, copy key to clipboard
 
 ### Multi-language i18n
 - Arabic (RTL default), English, Hindi, Bengali via react-i18next
