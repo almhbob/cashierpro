@@ -6,15 +6,17 @@
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
-    "build:win": "electron-builder --win --x64",
-    "build:win32": "electron-builder --win --ia32",
-    "postinstall": "electron-builder install-app-deps"
+    "build:win": "electron-builder --win --x64 --publish never"
   },
   "build": {
     "appId": "com.cashierpro.desktop",
     "productName": "CashierPro",
     "copyright": "Copyright 2025 CashierPro",
     "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*",
+      "**/node_modules/bindings/**/*"
+    ],
     "directories": {
       "output": "dist-exe",
       "buildResources": "build"
@@ -23,29 +25,23 @@
       "src/**/*",
       "renderer/**/*",
       "node_modules/**/*",
-      "!node_modules/.cache/**/*"
+      "!node_modules/.cache/**/*",
+      "!node_modules/electron/**/*",
+      "!node_modules/electron-builder/**/*"
     ],
     "win": {
       "target": [
         { "target": "nsis", "arch": ["x64"] }
       ],
-      "artifactName": "CashierPro-Setup-${version}.exe",
-      "requestedExecutionLevel": "asInvoker"
+      "artifactName": "CashierPro-Setup-${version}.exe"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "allowElevation": true,
-      "installerLanguages": ["Arabic"],
-      "language": "1025",
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "كاشير برو",
-      "include": "build/installer.nsh"
-    },
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.business"
+      "shortcutName": "CashierPro"
     }
   },
   "dependencies": {
@@ -55,6 +51,7 @@
     "node-machine-id": "^1.1.12"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
     "cross-env": "^7.0.3",
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3"

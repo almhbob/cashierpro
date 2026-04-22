@@ -18,90 +18,86 @@ jobs:
   build-windows:
     runs-on: windows-latest
 
-    defaults:
-      run:
-        working-directory: desktop-app
-
     steps:
       # ── 1. Checkout ──────────────────────────────────────────────────────
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ── 2. Setup Node.js ─────────────────────────────────────────────────
-      - name: Setup Node.js 20
+      # ── 2. Node.js 20 ────────────────────────────────────────────────────
+      - name: Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      # ── 3. Verify offline renderer ────────────────────────────────────────
-      - name: Verify offline renderer
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          echo "=== Offline POS renderer ==="
-          ls -la desktop-app/renderer/dist/
-          echo "Lines: $(wc -l < desktop-app/renderer/dist/index.html)"
+      # ── 3. Cache Electron ─────────────────────────────────────────────────
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: ${{ runner.os }}-electron-29-${{ hashFiles('desktop-app/package.json') }}
 
       # ── 4. Set version ───────────────────────────────────────────────────
       - name: Set version
         shell: bash
-        working-directory: ${{ github.workspace }}
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"
+            V="${{ github.ref_name }}"; V="${V#v}"
           else
-            VERSION="${{ github.event.inputs.version || '1.0.0' }}"
+            V="${{ github.event.inputs.version || '1.0.0' }}"
           fi
-          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION=$V" >> $GITHUB_ENV
           node -e "
-            const fs = require('fs');
-            const p = JSON.parse(fs.readFileSync('desktop-app/package.json', 'utf8'));
-            p.version = '$VERSION';
-            fs.writeFileSync('desktop-app/package.json', JSON.stringify(p, null, 2));
-            console.log('Version set:', '$VERSION');
+            const fs=require('fs');
+            const p=JSON.parse(fs.readFileSync('desktop-app/package.json','utf8'));
+            p.version='$V';
+            fs.writeFileSync('desktop-app/package.json',JSON.stringify(p,null,2));
+            console.log('Version set to $V');
           "
 
       # ── 5. Inject APP_URL ─────────────────────────────────────────────────
-      - name: Inject app URL
+      - name: Inject URL
         shell: bash
-        working-directory: ${{ github.workspace }}
         run: |
-          APP_URL="${{ secrets.APP_URL || 'https://cashierpro.replit.app' }}"
-          sed -i "s|https://cashierpro.replit.app|$APP_URL|g" desktop-app/src/license-validator.js
-          sed -i "s|https://cashierpro.replit.app|$APP_URL|g" desktop-app/src/main.js
-          echo "Injected URL: $APP_URL"
+          URL="${{ secrets.APP_URL || 'https://cashierpro.replit.app' }}"
+          sed -i "s|https://cashierpro.replit.app|$URL|g" desktop-app/src/license-validator.js
+          sed -i "s|https://cashierpro.replit.app|$URL|g" desktop-app/src/main.js
 
-      # ── 6. Install dependencies ───────────────────────────────────────────
-      - name: Install dependencies
+      # ── 6. Install npm dependencies ───────────────────────────────────────
+      - name: npm install
+        working-directory: desktop-app
         shell: cmd
-        run: npm install --ignore-scripts
+        run: npm install
 
       # ── 7. Rebuild native modules for Electron ────────────────────────────
+      # Uses @electron/rebuild (official tool) to compile better-sqlite3
+      # specifically against the Electron runtime ABI.
       - name: Rebuild native modules
+        working-directory: desktop-app
         shell: cmd
-        run: npx electron-builder install-app-deps
+        run: npx @electron/rebuild -f -w better-sqlite3
 
-      # ── 8. Build Windows EXE ─────────────────────────────────────────────
-      - name: Build Windows EXE
+      # ── 8. Build Windows Installer EXE ───────────────────────────────────
+      - name: Build EXE
+        working-directory: desktop-app
         shell: cmd
-        run: npm run build:win
+        run: npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 9. Confirm EXE ────────────────────────────────────────────────────
-      - name: Confirm EXE created
+      # ── 9. Verify output ──────────────────────────────────────────────────
+      - name: Verify EXE
         shell: bash
-        working-directory: ${{ github.workspace }}
         run: |
-          echo "=== Built files ==="
-          find desktop-app/dist-exe -name "*.exe" 2>/dev/null || true
-          COUNT=$(find desktop-app/dist-exe -name "*.exe" 2>/dev/null | wc -l)
-          echo "EXE count: $COUNT"
-          [ "$COUNT" -gt 0 ] || exit 1
+          echo "=== dist-exe contents ==="
+          find desktop-app/dist-exe -type f 2>/dev/null || echo "empty"
+          N=$(find desktop-app/dist-exe -name "*.exe" 2>/dev/null | wc -l)
+          echo "EXE count: $N"
+          [ "$N" -gt 0 ] || exit 1
 
-      # ── 10. Create GitHub Release ─────────────────────────────────────────
-      - name: Create GitHub Release
+      # ── 10. GitHub Release ────────────────────────────────────────────────
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ env.APP_VERSION }}"
@@ -114,29 +110,28 @@ jobs:
             - 🛒 شاشة كاشير (بحث + باركود + احتساب الباقي + طباعة)
             - 📦 إدارة المنتجات (إضافة / تعديل / حذف)
             - 📋 سجل المبيعات مع إعادة طباعة الفواتير
-            - ↩️ نظام الإرجاع الكامل (جزئي / كلي + إعادة المخزون)
+            - ↩️ نظام الإرجاع الكامل (جزئي / كلي + إعادة المخزون تلقائياً)
             - 📊 تقارير يومية وشهرية وأكثر المنتجات مبيعاً
-            - ⚙️ إعدادات شاملة (الضريبة، العملة، رأس الإيصال)
+            - ⚙️ إعدادات شاملة (الضريبة، العملة، الإيصال)
             - 💾 **يعمل بالكامل بدون إنترنت** بعد التفعيل الأول
 
-            ### 📥 خطوات التثبيت
+            ### 📥 التثبيت
             1. حمّل `CashierPro-Setup-${{ env.APP_VERSION }}.exe`
-            2. شغّل الملف (قد يطلب صلاحيات المدير — اقبل)
-            3. أدخل رمز الترخيص عند الطلب
-            4. ابدأ الاستخدام فوراً!
+            2. شغّل الملف وقبل طلب الصلاحيات
+            3. أدخل رمز الترخيص
+            4. ابدأ الاستخدام!
 
             ### 💻 المتطلبات
             - Windows 10 / 11 (64-bit)
-            - إنترنت مرة واحدة فقط عند التفعيل
+            - إنترنت مرة واحدة عند التفعيل فقط
 
-            ### 📞 للاستفسار والترخيص
-            - البريد: Almhbob.iii@gmail.com
-            - الهاتف: 0530658285
+            ### 📞 الترخيص والدعم
+            - Almhbob.iii@gmail.com
+            - 0530658285
           draft: false
           prerelease: false
           files: |
             desktop-app/dist-exe/*.exe
             desktop-app/dist-exe/*.yml
-          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
