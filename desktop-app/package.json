@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "كاشير برو — نظام إدارة المتاجر (نسخة مكتبية)",
   "main": "src/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/almhbob/cashierpro.git"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
-    "build:win": "electron-builder --win --x64 --publish never"
+    "build:win": "electron-builder --win --x64"
   },
   "build": {
     "appId": "com.cashierpro.desktop",
@@ -17,6 +21,11 @@
       "**/node_modules/better-sqlite3/**/*",
       "**/node_modules/bindings/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "almhbob",
+      "repo": "cashierpro"
+    },
     "directories": {
       "output": "dist-exe",
       "buildResources": "build"
