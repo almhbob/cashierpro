@@ -43,37 +43,15 @@ jobs:
         env:
           npm_config_build_from_source: "true"
 
-      # ── 5. Build the React frontend for desktop ───────────────────────
-      #       Uses a special Vite config (base: '/', no PORT check)
-      #       If this fails (e.g. missing CLERK key), EXE loads cloud URL as fallback
-      - name: Build React frontend (desktop mode)
-        id: build-frontend
-        continue-on-error: true
-        working-directory: artifacts/supermarket-pos
-        run: pnpm run build:desktop
-        env:
-          VITE_DESKTOP_MODE: "true"
-          VITE_APP_URL: ${{ secrets.APP_URL || 'https://cashierpro.replit.app' }}
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
-          BASE_PATH: "/"
-          PORT: "3000"
-
-      # ── 6. Copy frontend build to Electron renderer ───────────────────
-      - name: Copy React build to renderer/dist
-        if: steps.build-frontend.outcome == 'success'
+      # ── 5. Confirm offline renderer exists ────────────────────────────
+      #       The offline POS HTML is pre-built and committed in the repo.
+      #       No internet or Clerk required — full offline operation.
+      - name: Verify offline renderer
         shell: bash
         run: |
-          mkdir -p desktop-app/renderer/dist
-          cp -r artifacts/supermarket-pos/dist/public/. desktop-app/renderer/dist/
-          echo "Frontend files copied:"
+          echo "✅ Offline POS renderer:"
           ls desktop-app/renderer/dist/
-
-      - name: Skip frontend bundle (cloud mode fallback)
-        if: steps.build-frontend.outcome != 'success'
-        shell: bash
-        run: |
-          echo "⚠️ Frontend build skipped — EXE will load cloud URL: ${{ secrets.APP_URL || 'https://cashierpro.replit.app' }}"
-          echo "   Add VITE_CLERK_PUBLISHABLE_KEY secret for full offline bundle."
+          wc -l desktop-app/renderer/dist/index.html
 
       # ── 7. Set version from tag or input ─────────────────────────────
       - name: Set version
@@ -135,7 +113,8 @@ jobs:
 
             ### المتطلبات
             - Windows 10/11 (64-bit)
-            - اتصال بالإنترنت عند التفعيل الأول
+            - إنترنت فقط عند التفعيل الأول (مرة واحدة)
+            - **يعمل بعدها بدون إنترنت تماماً** 🚀
 
             ### التواصل
             للحصول على ترخيص: [Almhbob.iii@gmail.com](mailto:Almhbob.iii@gmail.com)

@@ -61,6 +61,27 @@ function initDb() {
       updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS returns (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      sale_id         INTEGER NOT NULL REFERENCES sales(id),
+      cashier_name    TEXT NOT NULL,
+      reason          TEXT,
+      total_refunded  REAL NOT NULL DEFAULT 0,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS return_items (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_id       INTEGER NOT NULL REFERENCES returns(id),
+      product_id      INTEGER NOT NULL,
+      product_name    TEXT NOT NULL,
+      product_name_ar TEXT NOT NULL,
+      barcode         TEXT NOT NULL,
+      quantity        INTEGER NOT NULL,
+      unit_price      REAL NOT NULL,
+      subtotal        REAL NOT NULL
+    );
+
     INSERT OR IGNORE INTO settings VALUES
       ('storeName', 'متجري', datetime('now')),
       ('storePhone', '', datetime('now')),
@@ -68,7 +89,10 @@ function initDb() {
       ('vatNumber', '', datetime('now')),
       ('vatRate', '15', datetime('now')),
       ('currency', 'SAR', datetime('now')),
-      ('invoicePrefix', 'INV', datetime('now'));
+      ('invoicePrefix', 'INV', datetime('now')),
+      ('cashierName', 'الكاشير', datetime('now')),
+      ('receiptHeader', '', datetime('now')),
+      ('receiptFooter', 'شكراً لزيارتكم', datetime('now'));
   `);
 
   return db;
@@ -151,6 +175,82 @@ function startServer(port = 7777) {
       db.prepare("UPDATE products SET stock = stock - ?, updated_at = datetime('now') WHERE id = ?").run(item.quantity, item.productId);
     }
     res.json(db.prepare("SELECT * FROM sales WHERE id=?").get(saleId));
+  });
+
+  /* ── Returns ──────────────────────── */
+  expressApp.get("/api/returns", (req, res) => {
+    const returns = db.prepare("SELECT r.*, s.id as saleRef FROM returns r JOIN sales s ON r.sale_id=s.id ORDER BY r.created_at DESC LIMIT 100").all();
+    res.json(returns);
+  });
+
+  expressApp.get("/api/returns/:id", (req, res) => {
+    const ret = db.prepare("SELECT * FROM returns WHERE id=?").get(req.params.id);
+    if (!ret) { res.status(404).json({ error: "not found" }); return; }
+    const items = db.prepare("SELECT * FROM return_items WHERE return_id=?").all(ret.id);
+    res.json({ ...ret, items });
+  });
+
+  expressApp.post("/api/returns", (req, res) => {
+    const { saleId, cashierName, reason, items } = req.body;
+    if (!saleId || !items || items.length === 0) {
+      res.status(400).json({ error: "بيانات الإرجاع غير مكتملة" }); return;
+    }
+    const totalRefunded = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
+    const retResult = db.prepare(
+      "INSERT INTO returns (sale_id, cashier_name, reason, total_refunded) VALUES (?, ?, ?, ?)"
+    ).run(saleId, cashierName ?? "الكاشير", reason ?? "", totalRefunded);
+    const retId = retResult.lastInsertRowid;
+    const stmt = db.prepare(
+      "INSERT INTO return_items (return_id, product_id, product_name, product_name_ar, barcode, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+    for (const item of items) {
+      stmt.run(retId, item.productId, item.productName, item.productNameAr, item.barcode, item.quantity, item.unitPrice, item.quantity * item.unitPrice);
+      db.prepare("UPDATE products SET stock = stock + ?, updated_at = datetime('now') WHERE id = ?").run(item.quantity, item.productId);
+    }
+    res.json({ id: retId, saleId, totalRefunded, items });
+  });
+
+  /* ── Reports ───────────────────────── */
+  expressApp.get("/api/reports/daily", (req, res) => {
+    const days = parseInt(req.query.days) || 30;
+    const rows = db.prepare(`
+      SELECT date(created_at) as day,
+             count(*) as transactions,
+             coalesce(sum(total),0) as revenue,
+             coalesce(sum(discount),0) as discounts
+      FROM sales
+      WHERE created_at >= date('now', '-' || ? || ' days')
+      GROUP BY day ORDER BY day ASC
+    `).all(days);
+    res.json(rows);
+  });
+
+  expressApp.get("/api/reports/top-products", (req, res) => {
+    const rows = db.prepare(`
+      SELECT si.product_name_ar as name, si.barcode,
+             sum(si.quantity) as totalQty, sum(si.subtotal) as totalRevenue
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      WHERE s.created_at >= date('now', '-30 days')
+      GROUP BY si.product_id ORDER BY totalQty DESC LIMIT 10
+    `).all();
+    res.json(rows);
+  });
+
+  expressApp.get("/api/reports/summary", (req, res) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const thisMonth = today.slice(0, 7);
+    const todayData  = db.prepare("SELECT count(*) c, coalesce(sum(total),0) t, coalesce(sum(discount),0) d FROM sales WHERE date(created_at)=?").get(today);
+    const monthData  = db.prepare("SELECT count(*) c, coalesce(sum(total),0) t FROM sales WHERE strftime('%Y-%m',created_at)=?").get(thisMonth);
+    const returnData = db.prepare("SELECT count(*) c, coalesce(sum(total_refunded),0) t FROM returns WHERE date(created_at)=?").get(today);
+    const totalProds = db.prepare("SELECT count(*) c FROM products").get().c;
+    const lowStock   = db.prepare("SELECT count(*) c FROM products WHERE stock<=5").get().c;
+    res.json({
+      todayTransactions: todayData.c, todayRevenue: todayData.t, todayDiscounts: todayData.d,
+      monthTransactions: monthData.c, monthRevenue: monthData.t,
+      todayReturns: returnData.c, todayRefunded: returnData.t,
+      totalProducts: totalProds, lowStockProducts: lowStock
+    });
   });
 
   /* ── Inventory ────────────────────── */

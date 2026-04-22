@@ -39,7 +39,7 @@ git status --short
 
 # 5. Commit if there are changes
 if ! git diff --cached --quiet; then
-  git commit -m "feat: GitHub Actions workflow for Windows EXE auto-build & release"
+  git commit -m "feat: complete offline POS — cashier, products, returns, reports, settings (no internet required)"
   echo "✅ تم إنشاء commit"
 else
   echo "ℹ️  لا يوجد تغييرات جديدة للـ commit"
