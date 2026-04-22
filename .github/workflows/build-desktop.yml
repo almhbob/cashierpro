@@ -1,14 +1,12 @@
 name: Build Windows EXE
 
 on:
-  # Manual trigger with optional version tag
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g. 1.0.0)"
+        description: "Version (e.g. 1.0.0)"
         required: false
         default: "1.0.0"
-  # Auto-build on version tags like v1.2.3
   push:
     tags:
       - "v*"
@@ -20,42 +18,34 @@ jobs:
   build-windows:
     runs-on: windows-latest
 
+    defaults:
+      run:
+        working-directory: desktop-app
+
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────
+      # ── 1. Checkout ──────────────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── 2. Setup Node.js ─────────────────────────────────────────────
+      # ── 2. Setup Node.js ─────────────────────────────────────────────────
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      # ── 3. Setup pnpm ────────────────────────────────────────────────
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      # ── 4. Install workspace deps (shared packages) ──────────────────
-      - name: Install workspace dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          npm_config_build_from_source: "true"
-
-      # ── 5. Confirm offline renderer exists ────────────────────────────
-      #       The offline POS HTML is pre-built and committed in the repo.
-      #       No internet or Clerk required — full offline operation.
+      # ── 3. Verify offline renderer ────────────────────────────────────────
       - name: Verify offline renderer
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
-          echo "✅ Offline POS renderer:"
-          ls desktop-app/renderer/dist/
-          wc -l desktop-app/renderer/dist/index.html
+          echo "=== Offline POS renderer ==="
+          ls -la desktop-app/renderer/dist/
+          echo "Lines: $(wc -l < desktop-app/renderer/dist/index.html)"
 
-      # ── 7. Set version from tag or input ─────────────────────────────
+      # ── 4. Set version ───────────────────────────────────────────────────
       - name: Set version
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${{ github.ref_name }}"
@@ -64,60 +54,84 @@ jobs:
             VERSION="${{ github.event.inputs.version || '1.0.0' }}"
           fi
           echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-          # Update package.json version
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('desktop-app/package.json','utf8')); p.version='$VERSION'; fs.writeFileSync('desktop-app/package.json',JSON.stringify(p,null,2));"
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('desktop-app/package.json', 'utf8'));
+            p.version = '$VERSION';
+            fs.writeFileSync('desktop-app/package.json', JSON.stringify(p, null, 2));
+            console.log('Version set:', '$VERSION');
+          "
 
-      # ── 8. Inject build-time env into Electron ───────────────────────
-      - name: Inject app URLs into Electron source
+      # ── 5. Inject APP_URL ─────────────────────────────────────────────────
+      - name: Inject app URL
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
           APP_URL="${{ secrets.APP_URL || 'https://cashierpro.replit.app' }}"
-          # Replace placeholder in license-validator.js
           sed -i "s|https://cashierpro.replit.app|$APP_URL|g" desktop-app/src/license-validator.js
           sed -i "s|https://cashierpro.replit.app|$APP_URL|g" desktop-app/src/main.js
+          echo "Injected URL: $APP_URL"
 
-      # ── 9. Install desktop-app deps (native, Windows) ────────────────
-      - name: Install Electron app dependencies
-        working-directory: desktop-app
-        run: npm install
+      # ── 6. Install dependencies ───────────────────────────────────────────
+      - name: Install dependencies
+        shell: cmd
+        run: npm install --ignore-scripts
 
-      # ── 10. Build Windows EXE ─────────────────────────────────────────
+      # ── 7. Rebuild native modules for Electron ────────────────────────────
+      - name: Rebuild native modules
+        shell: cmd
+        run: npx electron-builder install-app-deps
+
+      # ── 8. Build Windows EXE ─────────────────────────────────────────────
       - name: Build Windows EXE
-        working-directory: desktop-app
+        shell: cmd
         run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 11. List built artifacts ──────────────────────────────────────
-      - name: List output files
+      # ── 9. Confirm EXE ────────────────────────────────────────────────────
+      - name: Confirm EXE created
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
-          echo "=== Built EXE files ==="
-          find desktop-app/dist-exe -name "*.exe" 2>/dev/null || echo "No EXE found"
+          echo "=== Built files ==="
+          find desktop-app/dist-exe -name "*.exe" 2>/dev/null || true
+          COUNT=$(find desktop-app/dist-exe -name "*.exe" 2>/dev/null | wc -l)
+          echo "EXE count: $COUNT"
+          [ "$COUNT" -gt 0 ] || exit 1
 
-      # ── 12. Create GitHub Release & upload EXE ────────────────────────
+      # ── 10. Create GitHub Release ─────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ env.APP_VERSION }}"
-          name: "CashierPro v${{ env.APP_VERSION }} — كاشير برو"
+          name: "كاشير برو v${{ env.APP_VERSION }}"
           body: |
-            ## كاشير برو — نظام إدارة نقاط البيع
+            ## كاشير برو — نظام نقطة البيع المتكامل
             **الإصدار:** ${{ env.APP_VERSION }}
 
-            ### التثبيت
-            1. قم بتحميل الملف `CashierPro-Setup-${{ env.APP_VERSION }}.exe`
-            2. شغّل ملف التثبيت بصلاحيات المدير
+            ### ✨ المميزات
+            - 🛒 شاشة كاشير (بحث + باركود + احتساب الباقي + طباعة)
+            - 📦 إدارة المنتجات (إضافة / تعديل / حذف)
+            - 📋 سجل المبيعات مع إعادة طباعة الفواتير
+            - ↩️ نظام الإرجاع الكامل (جزئي / كلي + إعادة المخزون)
+            - 📊 تقارير يومية وشهرية وأكثر المنتجات مبيعاً
+            - ⚙️ إعدادات شاملة (الضريبة، العملة، رأس الإيصال)
+            - 💾 **يعمل بالكامل بدون إنترنت** بعد التفعيل الأول
+
+            ### 📥 خطوات التثبيت
+            1. حمّل `CashierPro-Setup-${{ env.APP_VERSION }}.exe`
+            2. شغّل الملف (قد يطلب صلاحيات المدير — اقبل)
             3. أدخل رمز الترخيص عند الطلب
-            4. ابدأ الاستخدام مباشرة!
+            4. ابدأ الاستخدام فوراً!
 
-            ### المتطلبات
-            - Windows 10/11 (64-bit)
-            - إنترنت فقط عند التفعيل الأول (مرة واحدة)
-            - **يعمل بعدها بدون إنترنت تماماً** 🚀
+            ### 💻 المتطلبات
+            - Windows 10 / 11 (64-bit)
+            - إنترنت مرة واحدة فقط عند التفعيل
 
-            ### التواصل
-            للحصول على ترخيص: [Almhbob.iii@gmail.com](mailto:Almhbob.iii@gmail.com)
+            ### 📞 للاستفسار والترخيص
+            - البريد: Almhbob.iii@gmail.com
+            - الهاتف: 0530658285
           draft: false
           prerelease: false
           files: |
