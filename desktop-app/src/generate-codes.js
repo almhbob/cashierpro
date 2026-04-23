@@ -16,8 +16,28 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-// يجب أن يطابق HMAC_SECRET في activation.js تمامًا
-const HMAC_SECRET = "CashierPro-Secret-2025-AlMhbob";
+/**
+ * يحمّل المفتاح السري بالترتيب:
+ *  1. متغير البيئة HMAC_SECRET
+ *  2. ملف src/hmac-config.js المحلي (غير مرفوع على git)
+ *  3. خطأ واضح يطلب تشغيل rotate-secret.js
+ */
+function loadHmacSecret() {
+  if (process.env.HMAC_SECRET) {
+    return process.env.HMAC_SECRET;
+  }
+  try {
+    return require("./hmac-config").HMAC_SECRET;
+  } catch {
+    throw new Error(
+      "[CashierPro] HMAC secret is not configured.\n" +
+      "Run:  node scripts/rotate-secret.js\n" +
+      "Or set the HMAC_SECRET environment variable."
+    );
+  }
+}
+
+const HMAC_SECRET = loadHmacSecret();
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // بدون أحرف مشابهة (0/O, 1/I)
 

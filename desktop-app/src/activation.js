@@ -12,15 +12,35 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
-// مفتاح سري — غيّره قبل النشر وأبقه آمنًا
-const HMAC_SECRET = "CashierPro-Secret-2025-AlMhbob";
+/**
+ * يحمّل المفتاح السري من ملف hmac-config.js المُدمَج في التطبيق.
+ *
+ * Loads the HMAC secret from the bundled hmac-config.js file.
+ *
+ * ملاحظة أمنية: يتعمّد هذا الملف عدم قراءة متغيرات البيئة —
+ * لأن المستخدم النهائي قد يتلاعب بها لتوليد كودات مزيفة.
+ *
+ * Security note: This file intentionally does NOT read environment variables.
+ * The verifier must use only the secret bundled at build time (asar'd into the EXE).
+ * Environment variable support belongs only in build/generation tooling (generate-codes.js).
+ *
+ * لإعداد المفتاح (مطلوب مرة واحدة بعد الاستنساخ):
+ * To set up the secret (required once after cloning):
+ *   node scripts/rotate-secret.js
+ */
+function loadHmacSecret() {
+  try {
+    return require("./hmac-config").HMAC_SECRET;
+  } catch {
+    throw new Error(
+      "[CashierPro] HMAC secret is not configured.\n" +
+      "Run:  node scripts/rotate-secret.js\n" +
+      "This generates src/hmac-config.js which must be present before starting or building."
+    );
+  }
+}
 
-// كودات ثابتة للتجربة/التطوير (سيتم إزالتها في الإنتاج)
-const DEMO_CODES = [
-  "DEMO-TEST-CODE-2025",
-  "CASH-IERO-PROO-0001",
-  "DEVL-OPRT-ESTA-0001",
-];
+const HMAC_SECRET = loadHmacSecret();
 
 /**
  * يتحقق من صحة الكود
@@ -34,12 +54,7 @@ function verifyCode(code) {
 
   const normalized = code.trim().toUpperCase().replace(/\s/g, "");
 
-  // التحقق من الكودات التجريبية
-  if (DEMO_CODES.includes(normalized)) {
-    return { valid: true, type: "demo", message: "كود تجريبي صحيح" };
-  }
-
-  // التحقق من الكودات المولّدة (HMAC)
+  // التحقق من الكودات المولّدة (HMAC فقط — لا توجد كودات تجاوز مشفرة)
   if (isValidHmacCode(normalized)) {
     return { valid: true, type: "full", message: "كود صحيح" };
   }
