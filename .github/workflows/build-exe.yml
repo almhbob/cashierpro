@@ -11,6 +11,9 @@ on:
         required: false
         default: '1.0.0'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build CashierPro EXE (Windows)
@@ -24,59 +27,168 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: desktop-app/package-lock.json
 
-      - name: 📦 Install desktop-app dependencies
-        working-directory: desktop-app
-        run: npm ci
+      - name: 💾 Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: ${{ runner.os }}-electron-29-${{ hashFiles('desktop-app/package.json') }}
+
+      - name: 🔢 Set version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            V="${{ github.ref_name }}"
+            V="${V#v}"
+          else
+            V="${{ github.event.inputs.version || '1.0.0' }}"
+          fi
+          echo "APP_VERSION=$V" >> $GITHUB_ENV
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('desktop-app/package.json', 'utf8'));
+            p.version = '$V';
+            fs.writeFileSync('desktop-app/package.json', JSON.stringify(p, null, 2));
+            console.log('Version set to $V');
+          "
+
+      - name: 🌐 Inject production APP_URL
+        shell: bash
+        run: |
+          URL="${{ secrets.APP_URL || 'https://supermarket-pos.replit.app' }}"
+          sed -i "s|https://supermarket-pos.replit.app|$URL|g" desktop-app/src/main.js
+          sed -i "s|https://cashierpro.replit.app|$URL|g" desktop-app/src/main.js
+          sed -i "s|https://cashierpro.replit.app|$URL|g" desktop-app/src/license-validator.js 2>/dev/null || true
+          echo "APP_URL injected: $URL"
+
+      - name: 🔑 Create HMAC config
+        shell: bash
+        run: |
+          SECRET="${{ secrets.HMAC_SECRET }}"
+          if [ -z "$SECRET" ]; then
+            SECRET=$(node -e "const c=require('crypto');console.log(c.randomBytes(32).toString('hex'));")
+            echo "⚠️  HMAC_SECRET not set — generated a random secret for this build"
+          fi
+          node -e "
+            const fs = require('fs');
+            fs.writeFileSync(
+              'desktop-app/src/hmac-config.js',
+              'module.exports = { HMAC_SECRET: ' + JSON.stringify('$SECRET') + ' };\n'
+            );
+            console.log('hmac-config.js created');
+          "
 
       - name: 🔑 Generate activation codes (optional)
         working-directory: desktop-app
         run: node src/generate-codes.js 20
         continue-on-error: true
+        env:
+          HMAC_SECRET: ${{ secrets.HMAC_SECRET }}
+
+      - name: 📦 Install dependencies
+        working-directory: desktop-app
+        shell: cmd
+        run: npm ci
+
+      - name: 🔧 Rebuild native modules for Electron
+        working-directory: desktop-app
+        shell: cmd
+        run: npx @electron/rebuild -f -w better-sqlite3
+        continue-on-error: true
 
       - name: 🏗️ Build Windows EXE
         working-directory: desktop-app
+        shell: cmd
+        run: npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:win
 
-      - name: 📤 Upload EXE artifact
+      - name: ✅ Verify EXE output
+        shell: bash
+        run: |
+          echo "=== dist-exe contents ==="
+          find desktop-app/dist-exe -type f 2>/dev/null || echo "empty"
+          N=$(find desktop-app/dist-exe -name "*.exe" 2>/dev/null | wc -l)
+          echo "EXE count: $N"
+          [ "$N" -gt 0 ] || exit 1
+
+      - name: 📤 Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CashierPro-Windows-EXE
+          name: CashierPro-Windows-EXE-v${{ env.APP_VERSION }}
           path: |
             desktop-app/dist-exe/*.exe
-            desktop-app/dist-exe/win-unpacked/
+            desktop-app/dist-exe/*.yml
           retention-days: 30
 
       - name: 🚀 Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: desktop-app/dist-exe/*.exe
-          name: CashierPro v${{ github.ref_name }}
+          tag_name: v${{ env.APP_VERSION }}
+          name: كاشير برو — CashierPro v${{ env.APP_VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            desktop-app/dist-exe/*.exe
+            desktop-app/dist-exe/*.yml
           body: |
-            ## 🏪 كاشير برو — CashierPro ${{ github.ref_name }}
+            ## 🏪 كاشير برو — CashierPro v${{ env.APP_VERSION }}
 
-            ### 📥 التحميل / Download
-            - **CashierPro-Setup.exe** — المثبّت الكامل لـ Windows
-
-            ### ✨ الجديد / What's New
-            - راجع CHANGELOG لتفاصيل التغييرات
-
-            ### 🔑 للتفعيل / Activation
-            تواصل مع المطوّر للحصول على كود التفعيل:
-            - واتساب: +966530658285
-            - البريد: Almhbob.iii@gmail.com
-
-            ### 🛠️ متطلبات النظام / Requirements
-            - Windows 10/11 (64-bit)
-            - 4 GB RAM
-            - اتصال بالإنترنت للدخول السحابي
+            نظام نقطة البيع السحابي للسوبر ماركت والمتاجر — نسخة Windows المكتبية.
 
             ---
-            © 2025 Abdullah Almhbob / CashierPro
+
+            ### 📥 التثبيت خطوة بخطوة / Step-by-Step Installation
+
+            **بالعربية:**
+            1. حمّل ملف `CashierPro-Setup-${{ env.APP_VERSION }}.exe` من الأسفل
+            2. شغّل الملف — إذا ظهرت رسالة Windows SmartScreen اضغط **"مزيد من المعلومات" ← "تشغيل على أي حال"**
+            3. اتّبع خطوات المعالج (اختر مجلد التثبيت وأنشئ اختصار سطح المكتب)
+            4. عند أول تشغيل أدخل **رمز التفعيل** الذي حصلت عليه من المطوّر
+            5. ابدأ استخدام النظام — يتصل تلقائيًا بالسحابة عبر الإنترنت
+
+            **In English:**
+            1. Download `CashierPro-Setup-${{ env.APP_VERSION }}.exe` below
+            2. Run the file — if Windows SmartScreen appears, click **"More info" → "Run anyway"**
+            3. Follow the setup wizard (choose install folder and create a desktop shortcut)
+            4. On first launch, enter your **activation code** obtained from the developer
+            5. The app connects to the cloud automatically — internet required for cloud sync
+
+            ---
+
+            ### ✨ المميزات / Features
+
+            - 🛒 شاشة كاشير متكاملة (بحث + باركود + فاتورة + طباعة)
+            - 📦 إدارة المنتجات والمخزون
+            - 📋 سجل المبيعات مع إعادة طباعة الفواتير
+            - ↩️ نظام الإرجاع الكامل (جزئي / كلي)
+            - 📊 تقارير يومية وشهرية
+            - 🌐 دعم عربي / إنجليزي / هندي / بنغالي
+
+            ---
+
+            ### 💻 متطلبات النظام / System Requirements
+
+            | المتطلب | التفصيل |
+            |---------|---------|
+            | نظام التشغيل | Windows 10 / 11 (64-bit) |
+            | الذاكرة | 4 GB RAM أو أكثر |
+            | المساحة | 300 MB مساحة حرة |
+            | الإنترنت | مطلوب للمزامنة السحابية |
+
+            ---
+
+            ### 🔑 التفعيل والدعم / Activation & Support
+
+            تواصل مع المطوّر للحصول على رمز التفعيل:
+
+            - 📱 **واتساب / WhatsApp:** [+966530658285](https://wa.me/966530658285)
+            - 📧 **البريد / Email:** Almhbob.iii@gmail.com
+
+            ---
+
+            © 2025 Abdullah Almhbob — CashierPro. جميع الحقوق محفوظة.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
