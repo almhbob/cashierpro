@@ -1,0 +1,82 @@
+name: 🏗️ Build Windows EXE
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g. 1.0.0)'
+        required: false
+        default: '1.0.0'
+
+jobs:
+  build:
+    name: Build CashierPro EXE (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: 📦 Install desktop-app dependencies
+        working-directory: desktop-app
+        run: npm ci
+
+      - name: 🔑 Generate activation codes (optional)
+        working-directory: desktop-app
+        run: node src/generate-codes.js 20
+        continue-on-error: true
+
+      - name: 🏗️ Build Windows EXE
+        working-directory: desktop-app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:win
+
+      - name: 📤 Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CashierPro-Windows-EXE
+          path: |
+            desktop-app/dist-exe/*.exe
+            desktop-app/dist-exe/win-unpacked/
+          retention-days: 30
+
+      - name: 🚀 Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop-app/dist-exe/*.exe
+          name: CashierPro v${{ github.ref_name }}
+          body: |
+            ## 🏪 كاشير برو — CashierPro ${{ github.ref_name }}
+
+            ### 📥 التحميل / Download
+            - **CashierPro-Setup.exe** — المثبّت الكامل لـ Windows
+
+            ### ✨ الجديد / What's New
+            - راجع CHANGELOG لتفاصيل التغييرات
+
+            ### 🔑 للتفعيل / Activation
+            تواصل مع المطوّر للحصول على كود التفعيل:
+            - واتساب: +966530658285
+            - البريد: Almhbob.iii@gmail.com
+
+            ### 🛠️ متطلبات النظام / Requirements
+            - Windows 10/11 (64-bit)
+            - 4 GB RAM
+            - اتصال بالإنترنت للدخول السحابي
+
+            ---
+            © 2025 Abdullah Almhbob / CashierPro
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,10 +1,24 @@
-<div dir="rtl">
+<div align="center">
 
 # 🏪 كاشير برو — CashierPro
 
-**نظام إدارة نقاط البيع السحابي المتكامل للمتاجر والسوبر ماركت**
+[![Version](https://img.shields.io/badge/الإصدار-1.0.0-16a34a?style=for-the-badge)]()
+[![License](https://img.shields.io/badge/الترخيص-Proprietary-ef4444?style=for-the-badge)]()
+[![Node](https://img.shields.io/badge/Node.js-24.x-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 
-نظام SaaS متعدد المستأجرين مبني بأحدث التقنيات، يتيح لأصحاب المتاجر إدارة المبيعات والمخزون والتقارير من أي مكان، مع دعم نسخة سطح المكتب (EXE) للعمل دون إنترنت.
+**نظام إدارة المتاجر والسوبر ماركت السحابي الأول**
+**#1 Cloud-Based Supermarket Management SaaS**
+
+[العربية](#-نظرة-عامة) · [English](#english-overview) · [বাংলা](#বাংলা-সংক্ষিপ্ত-বিবরণ)
+
+</div>
+
+---
+
+## 📋 نظرة عامة
+
+**كاشير برو** منصة SaaS سحابية متعددة المستأجرين (Multi-Tenant) لإدارة المتاجر والسوبر ماركت بشكل احترافي. تشمل نقطة بيع سريعة، إدارة مخزون متكاملة، إدارة موظفين بصلاحيات دقيقة، تقارير وتحليلات متقدمة، ودعم أربع لغات.
 
 ---
 
@@ -12,181 +26,209 @@
 
 | الميزة | الوصف |
 |--------|-------|
-| 🛒 **نقطة بيع سريعة** | مسح الباركود وإتمام البيع في ثوانٍ |
-| 📦 **إدارة المخزون** | تتبع الكميات والتنبيه عند النقص |
-| 📊 **تقارير وتحليلات** | إحصائيات يومية وشهرية تفصيلية |
-| 🌐 **متعدد اللغات** | عربي، إنجليزي، هندي، بنغالي (RTL/LTR) |
-| 👥 **متعدد المستأجرين** | كل متجر بيانات معزولة تماماً |
-| 📱 **PWA** | قابل للتثبيت على الجوال |
-| 💻 **نسخة EXE** | تعمل offline على Windows بترخيص مرتبط بالجهاز |
-| 🎯 **وضع تجريبي** | للعروض البيعية بكود `DEMO2025` |
-| 🔐 **بوابة المطور** | لوحة تحكم كاملة للمطوّر بكلمة سر مستقلة |
+| 🛒 **نقطة بيع سريعة** | مسح باركود + إتمام البيع في ثوانٍ مع طباعة فاتورة |
+| 📦 **إدارة المخزون** | تتبع المستودع، تنبيهات نقص المخزون، تقرير جرد |
+| 👥 **إدارة الموظفين** | أدوار (مالك/مدير/كاشير/محاسب)، PIN مشرف، صلاحيات دقيقة |
+| 📊 **تقارير وتحليلات** | إحصاءات يومية وشهرية، تحليل المنتجات الأكثر مبيعًا |
+| 🌍 **4 لغات** | العربية 🇸🇦، الإنجليزية 🇺🇸، الهندية 🇮🇳، البنغالية 🇧🇩 |
+| 🏢 **متعدد المتاجر** | كل متجر بياناته معزولة تمامًا، إدارة من لوحة واحدة |
+| 🔒 **أمان متقدم** | Clerk Auth + PIN مشرف + صلاحيات الوصول |
+| 🖥️ **نسخة مكتبية** | EXE لـ Windows مع كود تفعيل وعمل offline |
+| 🎯 **وضع تجريبي** | استعراض الميزات بكود `DEMO2025` |
+| 📱 **PWA** | قابل للتثبيت على الجوال والتابلت |
 
 ---
 
-## 🏗️ البنية التقنية
+## 🏗️ هيكل المشروع
 
 ```
 cashierpro/
 ├── artifacts/
-│   ├── supermarket-pos/     # React + Vite (واجهة المستخدم)
-│   └── api-server/          # Express 5 + Drizzle ORM (الـ API)
-├── lib/
-│   └── db/                  # مخطط PostgreSQL + Drizzle
-├── desktop-app/             # Electron (نسخة Windows EXE)
-└── packages/                # حزم مشتركة
+│   ├── supermarket-pos/          # واجهة المستخدم (React + Vite + TailwindCSS)
+│   │   └── src/
+│   │       ├── pages/            # POS, Products, Inventory, Employees, Settings...
+│   │       ├── components/       # UI Components (shadcn/ui)
+│   │       ├── context/          # TenantContext, DemoContext
+│   │       └── i18n/locales/     # ar.json, en.json, hi.json, bn.json
+│   └── api-server/               # خادم API (Express 5 + Drizzle ORM)
+│       └── src/
+│           ├── routes/           # tenants, products, sales, employees, superadmin...
+│           └── middleware/       # auth, tenant isolation
+├── lib/db/src/schema/            # مخطط قاعدة البيانات (Drizzle + PostgreSQL)
+├── desktop-app/                  # تطبيق Windows (Electron 29)
+│   ├── src/main.js               # العملية الرئيسية
+│   ├── src/activation.js         # نظام كود التفعيل (offline)
+│   └── renderer/                 # واجهة HTML
+└── pnpm-workspace.yaml
 ```
-
-### Stack
-
-| الطبقة | التقنية |
-|--------|---------|
-| Frontend | React 18, Vite, TailwindCSS, shadcn/ui |
-| Backend | Express 5, TypeScript, Drizzle ORM |
-| Database | PostgreSQL |
-| Auth | Clerk (OAuth + Email) |
-| Desktop | Electron 29, Better-SQLite3 |
-| Monorepo | pnpm workspaces |
 
 ---
 
-## 🚀 التشغيل المحلي
+## 🗄️ مخطط قاعدة البيانات
+
+| الجدول | الوصف |
+|--------|-------|
+| `tenants` | المتاجر (id, name, plan, status, trialEndsAt) |
+| `tenant_members` | أعضاء المتجر (role: owner/cashier/viewer) |
+| `tenant_settings` | إعدادات المتجر (key-value pairs) |
+| `products` | المنتجات (barcode, nameAr, price, stock, category) |
+| `sales` | المبيعات (total, cashierName, items JSON) |
+| `employees` | الموظفون (role, pin, permissions, salary) |
+| `desktop_licenses` | تراخيص نسخة EXE |
+
+---
+
+## 📱 الصفحات والمسارات
+
+| المسار | الصفحة | الوصول |
+|--------|--------|--------|
+| `/` | لوحة القيادة | مسجّل الدخول |
+| `/pos` | نقطة البيع | مسجّل الدخول |
+| `/products` | إدارة المنتجات | مسجّل الدخول |
+| `/inventory` | إدارة المخزون | مسجّل الدخول |
+| `/sales` | سجل المبيعات | مسجّل الدخول |
+| `/analytics` | التحليلات | مسجّل الدخول |
+| `/employees` | إدارة الموظفين | **مشرف فقط (PIN)** |
+| `/settings` | الإعدادات | **مالك فقط** |
+| `/superadmin` | لوحة التحكم العامة | **سوبر أدمن فقط** |
+
+---
+
+## 🚀 البدء السريع
 
 ### المتطلبات
-- Node.js 20+
+- Node.js 24+
 - pnpm 9+
-- PostgreSQL (أو استخدم DATABASE_URL)
+- PostgreSQL 16+
+- حساب [Clerk](https://clerk.com) للمصادقة
 
-### الخطوات
+### خطوات التثبيت
 
 ```bash
-# 1. نسخ المشروع
-git clone https://github.com/<username>/cashierpro.git
+# 1. استنساخ المستودع
+git clone https://github.com/almhbob/cashierpro.git
 cd cashierpro
 
-# 2. تثبيت الحزم
+# 2. تثبيت التبعيات
 pnpm install
 
-# 3. نسخ متغيرات البيئة
+# 3. إعداد متغيرات البيئة
 cp .env.example .env
-# عدّل الملف وأضف: DATABASE_URL, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY
+# عدّل .env بمعلومات قاعدة البيانات و Clerk
 
 # 4. رفع مخطط قاعدة البيانات
 pnpm --filter @workspace/db run push
 
-# 5. تشغيل API
+# 5. تشغيل الخادم
 pnpm --filter @workspace/api-server run dev
 
-# 6. تشغيل الواجهة (في نافذة ثانية)
+# 6. تشغيل الواجهة (في نافذة أخرى)
 pnpm --filter @workspace/supermarket-pos run dev
 ```
 
----
-
-## 🔐 متغيرات البيئة المطلوبة
+### متغيرات البيئة
 
 ```env
-DATABASE_URL=postgresql://...
-CLERK_SECRET_KEY=sk_...
-VITE_CLERK_PUBLISHABLE_KEY=pk_...
-DEV_PORTAL_PASSWORD=your-strong-password
-SESSION_SECRET=random-32-char-string
+# قاعدة البيانات
+DATABASE_URL=postgresql://user:pass@host:5432/cashierpro
+
+# Clerk Authentication
+CLERK_SECRET_KEY=sk_live_...
+VITE_CLERK_PUBLISHABLE_KEY=pk_live_...
+
+# الخادم
+PORT=8080
+NODE_ENV=production
 ```
 
-> ⚠️ لا ترفع ملف `.env` أبداً — هو مُدرَج في `.gitignore`
+---
+
+## 💳 خطط الاشتراك
+
+| الخطة | الكاشيرون | المنتجات | السعر الشهري |
+|-------|-----------|----------|-------------|
+| 🟢 **Starter** | 1 | 500 | مجاني |
+| 🔵 **Professional** | 5 | غير محدود | 99 ريال |
+| 🟣 **Enterprise** | ∞ | ∞ | 299 ريال |
 
 ---
 
-## 🛠️ بوابة المطور
+## 🌐 API الرئيسية
 
-الوصول على: `https://your-domain.com/dev`
-
-- مستقلة عن Clerk تماماً
-- محمية بكلمة سر (`DEV_PORTAL_PASSWORD`)
-- تتيح: إدارة المتاجر، التراخيص، عزل البيانات، الملف الشخصي
+```
+GET/PUT  /api/tenants/me                  → معلومات المتجر
+GET/PUT  /api/tenants/me/settings         → إعدادات المتجر
+GET/POST /api/products                    → إدارة المنتجات
+GET/POST /api/sales                       → المبيعات
+GET/POST /api/employees                   → إدارة الموظفين
+POST     /api/employees/verify-supervisor → التحقق من PIN
+GET      /api/superadmin/overview         → إحصاءات المنصة
+```
 
 ---
 
-## 💻 بناء نسخة Windows EXE
+## 🖥️ النسخة المكتبية (EXE)
+
+انظر [`desktop-app/README.md`](desktop-app/README.md) لتفاصيل:
+- تثبيت التطبيق على Windows
+- كودات التفعيل
+- بناء الـ EXE من المصدر
+
+---
+
+## 🛠️ أوامر التطوير
 
 ```bash
-cd desktop-app
-
-# 1. عدّل رابط خادمك في src/license-validator.js
-# 2. أضف أيقونة build/icon.ico
-# 3. ابنِ واجهة React وانسخ dist إلى renderer/
-
-npm install
-npm run build:win
-# الناتج: dist-exe/CashierPro-Setup-1.0.0.exe
+pnpm run typecheck          # فحص TypeScript الكامل
+pnpm run build              # بناء كامل
+pnpm --filter @workspace/api-server run dev    # تشغيل API
+pnpm --filter @workspace/supermarket-pos run dev  # تشغيل الواجهة
 ```
 
 ---
 
-## 📋 خطط الاشتراك
+## 📞 الدعم الفني والتواصل
 
-| الخطة | الكاشيرون | المنتجات | السعر |
-|-------|-----------|----------|-------|
-| أساسي | 1 | 500 | مجاناً |
-| محترف | 5 | ∞ | 99 ريال/شهر |
-| متميز | ∞ | ∞ | 299 ريال/شهر |
-
----
-
-## 👨‍💻 المطور
-
-**عاصم عبدالرحمن محمد**
-
-- 📧 Almhbob.iii@gmail.com
-- 📱 0530658285
-- 🌐 [credly.com/users/asim-abdulrahman](https://www.credly.com/users/asim-abdulrahman)
-
-### الشهادات المهنية
-- Google Advanced Data Analytics Professional (2026)
-- IBM Cybersecurity Specialist Professional (2026)
-- Google Data Analytics Professional (2026)
-- Cybersecurity Fundamentals — IBM (2024)
-- Introduction to Data Science — Cisco (2025)
+| القناة | التفاصيل |
+|--------|---------|
+| 📧 **البريد الإلكتروني** | [Almhbob.iii@gmail.com](mailto:Almhbob.iii@gmail.com) |
+| 📱 **واتساب** | [+966530658285](https://wa.me/966530658285) |
+| 👨‍💻 **المطوّر** | Abdullah Almhbob |
 
 ---
 
 ## 📄 الترخيص
 
-هذا المشروع مملوك لمطوّره. جميع الحقوق محفوظة © 2025
-
-</div>
+محمي بحقوق الملكية الفكرية. جميع الحقوق محفوظة © 2025 **Abdullah Almhbob / CashierPro**
 
 ---
 
-<div dir="ltr">
+<a id="english-overview"></a>
 
-# 🏪 CashierPro — نظام إدارة المتاجر
+## 🇺🇸 English Overview
 
-**A production-ready, multi-tenant SaaS Point-of-Sale system for retail shops**
+**CashierPro** is a production-ready, multi-tenant SaaS platform for supermarket and retail management.
 
-Built with modern stack (React + Express + PostgreSQL), featuring cloud sync, offline Windows EXE with machine-bound licensing, Arabic RTL UI, PWA support, and a professional developer admin portal.
+**Features:** Fast POS · Inventory Management · Employee Management with PIN Access · Advanced Reports · 4 Languages (Arabic, English, Hindi, Bengali) · Multi-store isolation · Windows Desktop EXE with offline activation codes · Demo Mode
 
-## Quick Start
+**Tech Stack:** React 18 · Vite · TailwindCSS · shadcn/ui · Express 5 · Drizzle ORM · PostgreSQL · Clerk Auth · Electron 29 · pnpm Workspaces · TypeScript 5.9
 
-```bash
-git clone https://github.com/<username>/cashierpro.git
-cd cashierpro && pnpm install
-# Add env vars → pnpm --filter @workspace/db run push → pnpm dev
-```
+**Support:** [Almhbob.iii@gmail.com](mailto:Almhbob.iii@gmail.com) | WhatsApp: [+966530658285](https://wa.me/966530658285)
 
-## Key Routes
+---
 
-| Route | Description |
-|-------|-------------|
-| `/` | POS Checkout |
-| `/dashboard` | Analytics Dashboard |
-| `/inventory` | Inventory Management |
-| `/settings` | Store Settings (4 tabs) |
-| `/dev` | Developer Admin Portal |
-| `/sign-in` | Clerk Authentication |
+<a id="বাংলা-সংক্ষিপ্ত-বিবরণ"></a>
 
-## Demo Mode
+## 🇧🇩 বাংলা সংক্ষিপ্ত বিবরণ
 
-Enter code `DEMO2025` on the sign-in page to explore with realistic mock data.
+**CashierPro** হল একটি প্রফেশনাল মাল্টি-টেন্যান্ট SaaS সিস্টেম যা সুপারমার্কেট ও রিটেইল ব্যবস্থাপনার জন্য তৈরি।
 
+**বৈশিষ্ট্যসমূহ:** দ্রুত POS · ইনভেন্টরি · কর্মী ব্যবস্থাপনা · ৪টি ভাষা (আরবি, ইংরেজি, হিন্দি, বাংলা) · Windows EXE অ্যাক্টিভেশন কোড সহ
+
+**সাপোর্ট:** [Almhbob.iii@gmail.com](mailto:Almhbob.iii@gmail.com) | WhatsApp: [+966530658285](https://wa.me/966530658285)
+
+---
+
+<div align="center">
+  <sub>Developed with ❤️ by <strong>Abdullah Almhbob</strong> · <a href="mailto:Almhbob.iii@gmail.com">Almhbob.iii@gmail.com</a> · <a href="https://wa.me/966530658285">+966530658285</a></sub>
 </div>

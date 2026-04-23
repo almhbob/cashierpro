@@ -56,8 +56,14 @@ Thumbs.db
 # Desktop app build output
 desktop-app/dist-exe/
 desktop-app/node_modules/
-desktop-app/renderer/
 desktop-app/src/local-server-data/
+
+# ⚠️ لا ترفع هذه الملفات — تحتوي كودات تفعيل سرية
+desktop-app/codes-generated.txt
+desktop-app/.cashierpro-license
+
+# كود activation.js يحتوي HMAC_SECRET — تأكد من عدم نشر مفتاح حقيقي
+# desktop-app/src/activation.js (keep in repo but change HMAC_SECRET before release)
 
 # Build artifacts
 artifacts/*/dist/
