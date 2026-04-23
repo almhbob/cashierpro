@@ -24,3 +24,9 @@ id = "29iNTq35eCdPmR4olnp-j"
 uri = "file://cashierpro-details.pdf"
 type = "pdf"
 title = "كاشير برو — أهم التفاصيل (PDF)"
+
+[[outputs]]
+id = "TBYlRlwwVYK1u7drHPecA"
+uri = "file://cashierpro-ar-en.pdf"
+type = "pdf"
+title = "كاشير برو — عربي إنجليزي"
