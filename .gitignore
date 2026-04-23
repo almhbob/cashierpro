@@ -48,6 +48,11 @@ Thumbs.db
 .cache/
 .local/
 
+# CashierPro Desktop — secret files (never commit these)
+desktop-app/src/hmac-config.js
+desktop-app/.env
+desktop-app/codes-generated.txt
+
 # Secrets & env overrides (never commit passwords)
 .env
 .env.local
