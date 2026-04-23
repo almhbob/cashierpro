@@ -42,3 +42,9 @@ id = "wVTzn1j0HyzhErhGpgUc7"
 uri = "file://عقد-بيع-كاشير-برو.pdf"
 type = "pdf"
 title = "عقد بيع الترخيص — كاشير برو"
+
+[[outputs]]
+id = "pFh27t6ifHxsrVUuyXQnK"
+uri = "file://كاشير-برو-الملف-التسويقي.pdf"
+type = "pdf"
+title = "كاشير برو — الملف التسويقي الاحترافي"
