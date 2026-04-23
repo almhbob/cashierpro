@@ -36,4 +36,11 @@ i18n
     interpolation: { escapeValue: false },
   });
 
+i18n.on("initialized", () => {
+  const baseCode = (i18n.resolvedLanguage ?? i18n.language).split("-")[0];
+  const lang = LANGUAGES.find((l) => l.code === baseCode);
+  document.documentElement.dir = lang?.dir ?? "rtl";
+  document.documentElement.lang = baseCode;
+});
+
 export default i18n;

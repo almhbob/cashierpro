@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { LANGUAGES } from "@/i18n";
-import { Globe } from "lucide-react";
+import { Globe, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,10 +9,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
+function resolveBaseCode(language: string): string {
+  return language.split("-")[0];
+}
+
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
 
-  const current = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
+  const activeCode = resolveBaseCode(i18n.resolvedLanguage ?? i18n.language);
+  const current = LANGUAGES.find((l) => l.code === activeCode) || LANGUAGES[0];
 
   const handleChange = (code: string) => {
     i18n.changeLanguage(code);
@@ -29,16 +34,20 @@ export function LanguageSwitcher() {
           <span className="truncate">{current.label}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side="top" className="w-40">
-        {LANGUAGES.map((lang) => (
-          <DropdownMenuItem
-            key={lang.code}
-            onClick={() => handleChange(lang.code)}
-            className={i18n.language === lang.code ? "font-semibold text-primary" : ""}
-          >
-            {lang.label}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end" side="top" className="w-44">
+        {LANGUAGES.map((lang) => {
+          const isActive = i18n.language === lang.code;
+          return (
+            <DropdownMenuItem
+              key={lang.code}
+              onClick={() => handleChange(lang.code)}
+              className="flex items-center justify-between gap-2 cursor-pointer"
+            >
+              <span className={isActive ? "font-semibold text-primary" : ""}>{lang.label}</span>
+              {isActive && <Check className="h-4 w-4 text-primary shrink-0" aria-label="selected" />}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
