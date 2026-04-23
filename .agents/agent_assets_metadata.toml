@@ -18,3 +18,9 @@ id = "5B1iTdHRHlPfYxd-SbUIz"
 uri = "file://desktop-app/dist-exe/CashierPro-Windows.zip"
 type = "unspecified"
 title = "CashierPro-Windows.zip — تطبيق كاشير برو لـ Windows"
+
+[[outputs]]
+id = "29iNTq35eCdPmR4olnp-j"
+uri = "file://cashierpro-details.pdf"
+type = "pdf"
+title = "كاشير برو — أهم التفاصيل (PDF)"
