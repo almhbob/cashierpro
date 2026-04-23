@@ -30,3 +30,15 @@ id = "TBYlRlwwVYK1u7drHPecA"
 uri = "file://cashierpro-ar-en.pdf"
 type = "pdf"
 title = "كاشير برو — عربي إنجليزي"
+
+[[outputs]]
+id = "c3tZfqFEOP-9cVJUNciPL"
+uri = "file://عقد-اشتراك-كاشير-برو.pdf"
+type = "pdf"
+title = "عقد الاشتراك — كاشير برو"
+
+[[outputs]]
+id = "wVTzn1j0HyzhErhGpgUc7"
+uri = "file://عقد-بيع-كاشير-برو.pdf"
+type = "pdf"
+title = "عقد بيع الترخيص — كاشير برو"
