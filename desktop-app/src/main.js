@@ -1,57 +1,186 @@
 /**
- * CashierPro Desktop — Main Electron Process
- * Handles: window management, license validation, local server startup
+ * CashierPro Desktop — Electron Main Process
+ * نظام كاشير برو المكتبي
  */
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog } = require("electron");
 const path = require("path");
-const { verifyLicense, activateLicense, getMachineId, getLicenseInfo } = require("./license-validator");
-const { startServer, stopServer } = require("./local-server");
+
+// رابط التطبيق السحابي
+const APP_URL = "https://supermarket-pos.replit.app";
 
 let mainWindow = null;
-let licenseWindow = null;
-let localPort = null;
 
-/* ─── App Config ──────────────────────────────── */
+const isDev = process.env.NODE_ENV === "development";
+
+/* ─── إعداد التطبيق ──────────────────── */
 app.setName("كاشير برو");
 app.setAppUserModelId("com.cashierpro.desktop");
 
-// Cloud URL used for the main POS window (set at build time)
-const APP_URL = process.env.APP_URL || "https://cashierpro.replit.app";
-
-// Check if the local React build is available (renderer/dist/index.html)
-const { existsSync } = require("fs");
-const RENDERER_DIST = path.join(__dirname, "../renderer/dist/index.html");
-const HAS_LOCAL_FRONTEND = existsSync(RENDERER_DIST);
-
-// Icon path (optional — gracefully skip if missing)
-const ICON_PATH = (() => {
-  const p = path.join(__dirname, "../build/icon.ico");
-  try { require("fs").accessSync(p); return p; } catch { return undefined; }
-})();
-
-/* ─── Window Factories ────────────────────────── */
-function createLicenseWindow() {
-  licenseWindow = new BrowserWindow({
-    width: 520,
-    height: 680,
-    resizable: false,
-    center: true,
-    title: "تفعيل كاشير برو",
-    ...(ICON_PATH ? { icon: ICON_PATH } : {}),
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-    autoHideMenuBar: true,
+// منع تشغيل أكثر من نسخة واحدة في نفس الوقت
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
   });
-
-  licenseWindow.loadFile(path.join(__dirname, "../renderer/license.html"));
-  licenseWindow.on("closed", () => { licenseWindow = null; });
 }
 
+/* ─── القائمة الرئيسية ───────────────── */
+function buildMenu() {
+  const template = [
+    {
+      label: "كاشير برو",
+      submenu: [
+        { label: "عن التطبيق", click: showAbout },
+        { type: "separator" },
+        {
+          label: "فتح الرابط في المتصفح",
+          click: () => shell.openExternal(APP_URL),
+        },
+        { type: "separator" },
+        { label: "إخفاء", accelerator: "CmdOrCtrl+H", role: "hide" },
+        { type: "separator" },
+        { label: "إغلاق", accelerator: "Alt+F4", click: () => app.quit() },
+      ],
+    },
+    {
+      label: "عرض",
+      submenu: [
+        {
+          label: "تحديث الصفحة",
+          accelerator: "F5",
+          click: () => mainWindow?.webContents.reload(),
+        },
+        {
+          label: "تحديث كامل",
+          accelerator: "Ctrl+Shift+R",
+          click: () => mainWindow?.webContents.reloadIgnoringCache(),
+        },
+        { type: "separator" },
+        { label: "تكبير", accelerator: "CmdOrCtrl+Plus", role: "zoomIn" },
+        { label: "تصغير", accelerator: "CmdOrCtrl+-", role: "zoomOut" },
+        { label: "الحجم الطبيعي", accelerator: "CmdOrCtrl+0", role: "resetZoom" },
+        { type: "separator" },
+        { label: "ملء الشاشة", accelerator: "F11", role: "togglefullscreen" },
+        ...(isDev
+          ? [
+              { type: "separator" },
+              {
+                label: "أدوات المطور",
+                accelerator: "F12",
+                click: () => mainWindow?.webContents.toggleDevTools(),
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      label: "مساعدة",
+      submenu: [
+        {
+          label: "موقع الدعم الفني",
+          click: () => shell.openExternal("https://cashierpro.replit.app"),
+        },
+        { type: "separator" },
+        { label: "عن كاشير برو", click: showAbout },
+      ],
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+function showAbout() {
+  dialog.showMessageBox(mainWindow, {
+    type: "info",
+    title: "عن كاشير برو",
+    message: "كاشير برو — CashierPro",
+    detail:
+      `الإصدار: 1.0.0\n` +
+      `نظام إدارة متاجر سحابي متكامل\n\n` +
+      `يعمل هذا التطبيق كواجهة مكتبية للنظام السحابي.\n` +
+      `يتطلب اتصالاً بالإنترنت للعمل.`,
+    buttons: ["موافق"],
+    noLink: true,
+  });
+}
+
+/* ─── نافذة الانتظار عند انقطاع الإنترنت ─ */
+function getOfflineHTML() {
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>كاشير برو</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background: linear-gradient(135deg, #0d9488 0%, #064e3b 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      color: white;
+    }
+    .card {
+      text-align: center; padding: 60px 48px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 28px;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2);
+      max-width: 420px;
+    }
+    .icon { font-size: 80px; margin-bottom: 24px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    p { font-size: 15px; opacity: 0.8; line-height: 1.6; margin-bottom: 32px; }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 10px 20px;
+      font-size: 13px; margin-bottom: 32px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    button {
+      background: white; color: #0d9488;
+      border: none; border-radius: 14px;
+      padding: 14px 36px; font-size: 15px;
+      font-weight: 700; cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.1s;
+    }
+    button:hover { transform: scale(1.03); }
+    button:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>كاشير برو</h1>
+    <p>لا يوجد اتصال بالإنترنت.<br/>يرجى التحقق من الاتصال ثم المحاولة مجددًا.</p>
+    <div class="badge">⚡ النظام يعمل بشكل طبيعي — في انتظار الإنترنت</div>
+    <button onclick="location.reload()">🔄 إعادة المحاولة</button>
+  </div>
+</body>
+</html>`;
+}
+
+/* ─── إنشاء النافذة الرئيسية ─────────── */
 function createMainWindow() {
+  const iconPath = (() => {
+    const p = path.join(__dirname, "../build/icon.ico");
+    try {
+      require("fs").accessSync(p);
+      return p;
+    } catch {
+      return undefined;
+    }
+  })();
+
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -59,55 +188,52 @@ function createMainWindow() {
     minHeight: 700,
     center: true,
     title: "كاشير برو",
-    ...(ICON_PATH ? { icon: ICON_PATH } : {}),
+    ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      // Allow the cloud URL to use session cookies
       partition: "persist:cashierpro",
     },
-    autoHideMenuBar: true,
+    autoHideMenuBar: false,
     show: false,
+    backgroundColor: "#0f172a",
   });
 
-  mainWindow.once("ready-to-show", () => mainWindow.show());
-  // Load local server (offline) if frontend is bundled, otherwise use cloud URL
-  const loadTarget = HAS_LOCAL_FRONTEND
-    ? `http://127.0.0.1:${localPort}`
-    : APP_URL;
-  mainWindow.loadURL(loadTarget);
-  mainWindow.on("closed", () => { mainWindow = null; });
+  buildMenu();
+
+  // تحميل التطبيق السحابي
+  mainWindow.loadURL(APP_URL);
+
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+    mainWindow.focus();
+  });
+
+  // إذا فشل التحميل، أظهر صفحة انقطاع الإنترنت
+  mainWindow.webContents.on("did-fail-load", (_event, code, desc) => {
+    if (code === -3) return; // ERR_ABORTED — ignore
+    mainWindow.webContents.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(getOfflineHTML())}`
+    );
+  });
+
+  // افتح الروابط الخارجية في المتصفح الافتراضي
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (!url.startsWith(APP_URL)) {
+      shell.openExternal(url);
+      return { action: "deny" };
+    }
+    return { action: "allow" };
+  });
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
-/* ─── IPC Handlers ────────────────────────────── */
-ipcMain.handle("get-machine-id", () => getMachineId());
-ipcMain.handle("get-license-info", () => getLicenseInfo());
-
-ipcMain.handle("activate-license", async (_event, key) => {
-  return await activateLicense(key);
-});
-
-ipcMain.handle("launch-main-app", () => {
-  if (licenseWindow) licenseWindow.close();
+/* ─── دورة حياة التطبيق ──────────────── */
+app.whenReady().then(() => {
   createMainWindow();
-});
-
-ipcMain.handle("open-external", (_event, url) => shell.openExternal(url));
-
-/* ─── App Lifecycle ───────────────────────────── */
-app.whenReady().then(async () => {
-  // Start local API server
-  localPort = startServer(7777);
-
-  // Verify license
-  const result = await verifyLicense();
-
-  if (result.valid) {
-    createMainWindow();
-  } else {
-    createLicenseWindow();
-  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -115,8 +241,8 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  stopServer();
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("quit", stopServer);
+/* ─── IPC ──────────────────────────── */
+ipcMain.handle("get-app-version", () => app.getVersion());
