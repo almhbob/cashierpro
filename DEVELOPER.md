@@ -65,9 +65,32 @@ node scripts/rotate-secret.js
 ### توليد كودات تفعيل EXE
 ```bash
 cd desktop-app
-node src/generate-codes.js 20          # 20 كود عشوائي
-node src/generate-codes.js 5 CP25      # 5 كود ببادئة CP25
+
+# الوضع الافتراضي — الكودات تُحفظ كـ HMAC-SHA256 hash (آمن، موصى به)
+# Default mode — codes stored as HMAC-SHA256 hashes (safe, recommended)
+node src/generate-codes.js 20          # 20 كود عشوائي، محفوظ كـ hash
+node src/generate-codes.js 5 CP25      # 5 كود ببادئة CP25، محفوظ كـ hash
+
+# تشفير كامل بـ AES-256 — يمكن فك التشفير بنفس كلمة المرور
+# Full AES-256-CBC encryption — decryptable with the same passphrase
+node src/generate-codes.js 20 --encrypt MySecretPass
+
+# عرض الكودات المشفَّرة في AES بنص عادي على الشاشة
+# Print AES-encrypted codes to the console in plain text
+node src/generate-codes.js --decrypt MySecretPass
+
+# نص عادي (غير موصى به — للتوافق مع الإصدارات القديمة فقط)
+# Plain text (not recommended — backward-compat only)
+node src/generate-codes.js 20 --plain
 ```
+
+> **ملاحظة:** الكودات الفعلية تُطبع دائمًا على الشاشة عند التوليد — احفظها في مكان آمن
+> (مدير كلمات المرور، جدول بيانات مشفَّر). الملف `codes-generated.txt` لا يحتوي على
+> الكودات بنص عادي في الوضع الافتراضي.
+>
+> **Note:** Actual codes are always printed to the console at generation time — save them
+> somewhere secure (password manager, encrypted spreadsheet). `codes-generated.txt` does
+> **not** contain plain-text codes in the default mode.
 
 ### بناء ملف EXE (يتطلب Windows أو Wine)
 ```bash
@@ -86,6 +109,20 @@ npm run build:win
 - الخوارزمية: HMAC-SHA256
 - تنسيق الكود: `XXXX-XXXX-XXXX-XXXX`
 - بعد التفعيل: يُحفظ ملف `.cashierpro-license` في مجلد بيانات التطبيق
+
+### تخزين الكودات / Code Storage Security
+
+| الوضع / Mode | الأمر / Command | الملف يحتوي / File contains |
+|---|---|---|
+| **افتراضي (موصى به)** / Default (recommended) | `node src/generate-codes.js 10` | HMAC-SHA256 hashes — لا كودات نصية |
+| **AES-256** | `node src/generate-codes.js 10 --encrypt <pass>` | blob مشفَّر — يمكن فك تشفيره بكلمة المرور |
+| **نص عادي** / Plain (not recommended) | `node src/generate-codes.js 10 --plain` | كودات بنص عادي ⚠️ |
+
+الكودات الفعلية **تُطبع دائمًا على الشاشة** عند التوليد — هذا هو المصدر الوحيد للكود النصي.
+احفظها في مدير كلمات مرور أو جدول بيانات مشفَّر.
+
+Actual codes are **always printed to console** at generation time — that is the only source
+of the plain-text code. Save them in a password manager or encrypted spreadsheet.
 
 ### كودات التطوير / Development Codes
 
