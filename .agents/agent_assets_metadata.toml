@@ -12,3 +12,9 @@ id = "dX4ak905yr8SaQ04LJ4_w"
 uri = "file://CREDENTIALS.md"
 type = "text"
 title = "كاشير برو — أهم البيانات"
+
+[[outputs]]
+id = "5B1iTdHRHlPfYxd-SbUIz"
+uri = "file://desktop-app/dist-exe/CashierPro-Windows.zip"
+type = "unspecified"
+title = "CashierPro-Windows.zip — تطبيق كاشير برو لـ Windows"
