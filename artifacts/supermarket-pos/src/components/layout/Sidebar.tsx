@@ -16,6 +16,8 @@ import {
   Clock,
   ChevronLeft,
   FlaskConical,
+  Users,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -145,9 +147,29 @@ export function Sidebar() {
         {!isDemoMode && (
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">
-              النظام
+              الإدارة
             </p>
             <div className="space-y-0.5">
+              {/* Employees - Supervisor Only */}
+              <Link href="/employees">
+                <div className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
+                  location === "/employees"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}>
+                  <Users className={cn(
+                    "h-[18px] w-[18px] shrink-0",
+                    location === "/employees" ? "text-white" : "text-slate-400 group-hover:text-blue-600"
+                  )} />
+                  <span className="text-sm font-medium">الموظفون</span>
+                  <Shield className={cn(
+                    "h-3 w-3 mr-auto opacity-70",
+                    location === "/employees" ? "text-white/80" : "text-slate-400"
+                  )} />
+                </div>
+              </Link>
+
               <Link href="/settings">
                 <div className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
@@ -160,8 +182,10 @@ export function Sidebar() {
                     location === "/settings" ? "text-white" : "text-slate-400 group-hover:text-teal-600"
                   )} />
                   <span className="text-sm font-medium">الإعدادات</span>
+                  {location === "/settings" && <ChevronLeft className="h-3.5 w-3.5 mr-auto opacity-60" />}
                 </div>
               </Link>
+
               <Link href="/superadmin">
                 <div className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
@@ -171,6 +195,7 @@ export function Sidebar() {
                 )}>
                   <Crown className="h-[18px] w-[18px] shrink-0" />
                   <span className="text-sm font-medium">إدارة المنصة</span>
+                  {location === "/superadmin" && <ChevronLeft className="h-3.5 w-3.5 mr-auto opacity-60" />}
                 </div>
               </Link>
             </div>
@@ -185,18 +210,18 @@ export function Sidebar() {
           isDemoMode ? "bg-amber-50" : "bg-slate-50"
         )}>
           <div className={cn(
-            "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
-            isDemoMode ? "bg-amber-100" : "bg-teal-100"
+            "w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm",
+            isDemoMode ? "bg-amber-100 text-amber-700" : "bg-teal-100 text-teal-700"
           )}>
             {isDemoMode
               ? <FlaskConical className="h-5 w-5 text-amber-600" />
-              : <UserCircle2 className="h-5 w-5 text-teal-600" />
+              : (displayName !== "..." ? displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("") : <UserCircle2 className="h-5 w-5 text-teal-600" />)
             }
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-slate-700 truncate">{displayName}</p>
             <p className={cn("text-xs", isDemoMode ? "text-amber-500" : "text-slate-400")}>
-              {isDemoMode ? "وضع تجريبي" : "كاشير"}
+              {isDemoMode ? "وضع تجريبي" : (tenant?.name ?? "المتجر")}
             </p>
           </div>
         </div>

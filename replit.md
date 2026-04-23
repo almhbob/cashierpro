@@ -96,6 +96,25 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 ### DB Schema additions (licenses.ts)
 - `desktop_licenses` — id, key (unique), machineId, storeName, storePhone, type (trial/annual/lifetime), expiresAt, activatedAt, notes, isRevoked, createdAt
 
+### Employee Management (v2)
+- **Schema**: `lib/db/src/schema/employees.ts` — `employees` table with: name, nameEn, role (owner/manager/cashier/accountant/warehouse), pin (SHA256-hashed), phone, email, salary, salaryType, startDate, nationalId, notes, status, permissions (canManageProducts, canManageSales, canViewReports, canManageEmployees, canManageSettings, canApplyDiscount, maxDiscountPercent)
+- **API**: `artifacts/api-server/src/routes/employees.ts` — full CRUD + supervisor PIN verify + stats
+  - `GET /api/employees` — list all (pin sanitized as ****)
+  - `POST /api/employees` — create
+  - `PUT /api/employees/:id` — update
+  - `DELETE /api/employees/:id?permanent=true|false` — deactivate or permanently delete
+  - `POST /api/employees/verify-supervisor` — verify supervisor PIN
+  - `GET /api/employees/stats` — aggregate stats by role and status
+- **Frontend**: `artifacts/supermarket-pos/src/pages/Employees.tsx` — protected by supervisor PIN lock
+- **Sidebar**: "الموظفون" link with Shield icon indicating supervisor-only access
+
+### Settings Enhancements (v2)
+- Internet connectivity indicator in header
+- System activation tracking (first run requires internet)
+- 6 tabs: المتجر, الأمان, الطابعة, الاشتراك, الخادم, النظام
+- "النظام" tab: activation status, activation ID, security checklist, supervisor PIN management
+- Supervisor PIN verification gate for accessing sensitive settings
+
 ### SuperAdmin Tabs
 1. **نظرة عامة** — KPI cards (total stores, MRR, active, paid), plan breakdown, revenue projection
 2. **المتاجر** — Store rows with expand/collapse, plan change, trial extend, suspend, delete

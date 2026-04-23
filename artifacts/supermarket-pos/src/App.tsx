@@ -24,6 +24,7 @@ import Dashboard from "@/pages/Dashboard";
 import Inventory from "@/pages/Inventory";
 import Analytics from "@/pages/Analytics";
 import Receive from "@/pages/Receive";
+import Employees from "@/pages/Employees";
 
 const queryClient = new QueryClient();
 
@@ -364,6 +365,7 @@ function AppContent() {
             <Route path="/inventory/low-stock" component={Inventory} />
             <Route path="/receive" component={Receive} />
             <Route path="/analytics" component={Analytics} />
+            <Route path="/employees" component={Employees} />
             <Route path="/settings" component={Settings} />
             <Route path="/superadmin" component={SuperAdmin} />
             <Route component={NotFound} />

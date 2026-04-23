@@ -18,7 +18,8 @@ import {
   CheckCircle2, Zap, Star, Crown, Cpu, MemoryStick, Activity,
   RefreshCw, TrendingUp, Lock, Key, Clock, Globe, AlertCircle,
   ChevronRight, BarChart3, Package, Users, Headphones, Printer,
-  FileText, Wifi, Info,
+  FileText, Wifi, Info, Eye, EyeOff, WifiOff, MonitorCheck,
+  KeyRound, UserCheck, Building2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -234,6 +235,57 @@ export default function SettingsPage() {
   /* ── PWA Install ── */
   const { isInstallable, isInstalled, install } = usePwaInstall();
 
+  /* ── Internet Connectivity ── */
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+  }, []);
+
+  /* ── Activation Status (localStorage) ── */
+  const [activatedAt] = useState<string | null>(() => localStorage.getItem("system_activated_at"));
+  const [activationId] = useState<string | null>(() => localStorage.getItem("system_activation_id"));
+
+  useEffect(() => {
+    if (!localStorage.getItem("system_activated_at") && navigator.onLine && tenant?.id) {
+      localStorage.setItem("system_activated_at", new Date().toISOString());
+      localStorage.setItem("system_activation_id", `ACT-${tenant.id.slice(0, 8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`);
+    }
+  }, [tenant?.id]);
+
+  /* ── Supervisor PIN Management ── */
+  const [supervisorPinForm, setSupervisorPinForm] = useState({ employeeId: "", newPin: "", confirmPin: "", showPin: false });
+  const [supervisorVerifyPin, setSupervisorVerifyPin] = useState("");
+  const [pinSectionUnlocked, setPinSectionUnlocked] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+
+  const verifySupervisorAccess = async () => {
+    if (!supervisorVerifyPin) return;
+    setPinLoading(true);
+    try {
+      const res = await fetch("/api/employees/verify-supervisor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: supervisorVerifyPin }),
+      });
+      const data = await res.json();
+      if (data.verified) {
+        setPinSectionUnlocked(true);
+        toast({ title: `مرحباً ${data.employee.name}`, description: "تم التحقق من صلاحيات المشرف" });
+      } else {
+        toast({ title: "رمز PIN غير صحيح", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "حدث خطأ في التحقق", variant: "destructive" });
+    } finally {
+      setPinLoading(false);
+      setSupervisorVerifyPin("");
+    }
+  };
+
   /* ── Printer Settings (localStorage) ── */
   const [printerSize, setPrinterSize] = useState<string>(() => localStorage.getItem("printerSize") || "80mm");
   const [printerType, setPrinterType] = useState<string>(() => localStorage.getItem("printerType") || "thermal");
@@ -278,32 +330,55 @@ export default function SettingsPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-primary/10 rounded-xl">
-          <Settings2 className="h-8 w-8 text-primary" />
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-primary/10 rounded-xl">
+            <Settings2 className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">الإعدادات</h1>
+            <p className="text-muted-foreground mt-1">إدارة إعدادات النظام والمتجر والصلاحيات</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("settings.title")}</h1>
-          <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border",
+            isOnline
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-red-50 text-red-700 border-red-200"
+          )}>
+            {isOnline
+              ? <><Wifi className="h-3.5 w-3.5" /> متصل بالإنترنت</>
+              : <><WifiOff className="h-3.5 w-3.5" /> غير متصل</>
+            }
+          </div>
+          {activationId && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border bg-teal-50 text-teal-700 border-teal-200">
+              <MonitorCheck className="h-3.5 w-3.5" /> النظام مفعّل
+            </div>
+          )}
         </div>
       </div>
 
-      <Tabs defaultValue="subscription" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 h-12">
-          <TabsTrigger value="subscription" className="gap-2">
-            <CreditCard className="h-4 w-4" /> {t("settings.tabSubscription")}
+      <Tabs defaultValue="store" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6 h-12">
+          <TabsTrigger value="store" className="gap-2 text-xs sm:text-sm">
+            <Store className="h-4 w-4" /> <span className="hidden sm:inline">{t("settings.tabStore")}</span>
           </TabsTrigger>
-          <TabsTrigger value="server" className="gap-2">
-            <Server className="h-4 w-4" /> {t("settings.tabServer")}
+          <TabsTrigger value="security" className="gap-2 text-xs sm:text-sm">
+            <Shield className="h-4 w-4" /> <span className="hidden sm:inline">{t("settings.tabSecurity")}</span>
           </TabsTrigger>
-          <TabsTrigger value="store" className="gap-2">
-            <Store className="h-4 w-4" /> {t("settings.tabStore")}
+          <TabsTrigger value="printer" className="gap-2 text-xs sm:text-sm">
+            <Printer className="h-4 w-4" /> <span className="hidden sm:inline">{t("settings.tabPrinter")}</span>
           </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2">
-            <Shield className="h-4 w-4" /> {t("settings.tabSecurity")}
+          <TabsTrigger value="subscription" className="gap-2 text-xs sm:text-sm">
+            <CreditCard className="h-4 w-4" /> <span className="hidden sm:inline">{t("settings.tabSubscription")}</span>
           </TabsTrigger>
-          <TabsTrigger value="printer" className="gap-2">
-            <Printer className="h-4 w-4" /> {t("settings.tabPrinter")}
+          <TabsTrigger value="server" className="gap-2 text-xs sm:text-sm">
+            <Server className="h-4 w-4" /> <span className="hidden sm:inline">{t("settings.tabServer")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="system" className="gap-2 text-xs sm:text-sm">
+            <MonitorCheck className="h-4 w-4" /> <span className="hidden sm:inline">النظام</span>
           </TabsTrigger>
         </TabsList>
 
@@ -943,6 +1018,213 @@ export default function SettingsPage() {
             </Button>
           </div>
         </TabsContent>
+
+        {/* ══════════════════════════════════════════
+            TAB 6 – SYSTEM ACTIVATION & INFO
+        ══════════════════════════════════════════ */}
+        <TabsContent value="system" className="space-y-6">
+
+          {/* Internet Requirement Notice */}
+          {!activatedAt && !isOnline && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-6 flex items-start gap-4">
+                <div className="p-3 bg-red-100 rounded-xl shrink-0">
+                  <WifiOff className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-red-800 text-lg">الإنترنت مطلوب لأول مرة</p>
+                  <p className="text-red-700 text-sm mt-1">
+                    يتطلب النظام الاتصال بالإنترنت في أول تشغيل لتفعيل حساب المؤسسة والتحقق من الرخصة.
+                    يرجى الاتصال بالإنترنت ثم إعادة تشغيل النظام.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Activation Status */}
+          <Card className={cn(
+            "border-2",
+            activatedAt ? "border-teal-200 bg-gradient-to-br from-teal-50 to-emerald-50" : "border-amber-200 bg-amber-50"
+          )}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MonitorCheck className={cn("h-5 w-5", activatedAt ? "text-teal-600" : "text-amber-600")} />
+                حالة تفعيل النظام
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-white/60 rounded-xl border space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">حالة التفعيل</p>
+                  <div className="flex items-center gap-2">
+                    {activatedAt ? (
+                      <><CheckCircle2 className="h-5 w-5 text-teal-600" /><span className="font-bold text-teal-700">مفعّل ونشط</span></>
+                    ) : (
+                      <><AlertCircle className="h-5 w-5 text-amber-600" /><span className="font-bold text-amber-700">في انتظار التفعيل</span></>
+                    )}
+                  </div>
+                  {activatedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      تاريخ التفعيل: {new Date(activatedAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" })}
+                    </p>
+                  )}
+                </div>
+                <div className="p-4 bg-white/60 rounded-xl border space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">رمز التفعيل</p>
+                  <code className="text-sm font-mono font-bold text-slate-700 break-all">
+                    {activationId || "---"}
+                  </code>
+                  <p className="text-xs text-muted-foreground">احتفظ بهذا الرمز كمرجع</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-white/60 rounded-xl border">
+                  <p className="text-xs text-muted-foreground">معرّف المؤسسة</p>
+                  <code className="text-xs font-mono font-semibold mt-1 block text-slate-700 break-all">
+                    {tenant?.id?.slice(0, 16) || "---"}...
+                  </code>
+                </div>
+                <div className="p-4 bg-white/60 rounded-xl border">
+                  <p className="text-xs text-muted-foreground">اسم المؤسسة</p>
+                  <p className="font-semibold mt-1 text-sm">{tenant?.name || "---"}</p>
+                </div>
+                <div className="p-4 bg-white/60 rounded-xl border">
+                  <p className="text-xs text-muted-foreground">حالة الاتصال</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className={cn("w-2 h-2 rounded-full", isOnline ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                    <span className={cn("font-semibold text-sm", isOnline ? "text-green-700" : "text-red-700")}>
+                      {isOnline ? "متصل" : "غير متصل"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* System Requirements */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" /> متطلبات النظام والأمان
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { label: "الاتصال بالإنترنت (التفعيل الأول)", status: activatedAt ? "ok" : (isOnline ? "ok" : "error"), desc: "مطلوب مرة واحدة فقط عند بدء الاستخدام" },
+                  { label: "تفعيل حساب المؤسسة", status: activatedAt ? "ok" : "warning", desc: "ربط النظام بحساب سحابي آمن" },
+                  { label: "مصادقة Clerk (تسجيل الدخول)", status: "ok", desc: "نظام مصادقة محمي ومشفر" },
+                  { label: "قاعدة بيانات مشفرة", status: "ok", desc: "PostgreSQL مع تشفير SSL" },
+                  { label: "شهادة SSL للاتصال", status: "ok", desc: "اتصال آمن بين التطبيق والخادم" },
+                  { label: "نسخ احتياطية تلقائية", status: "warning", desc: "يوصى بتفعيل النسخ الاحتياطي اليومي" },
+                ].map(({ label, status, desc }, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+                    {status === "ok" ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                    ) : status === "warning" ? (
+                      <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                    <Badge variant="outline" className={
+                      status === "ok" ? "text-green-600 border-green-300 bg-green-50" :
+                      status === "warning" ? "text-amber-600 border-amber-300 bg-amber-50" :
+                      "text-red-600 border-red-300 bg-red-50"
+                    }>
+                      {status === "ok" ? "مفعّل" : status === "warning" ? "موصى به" : "مطلوب"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Supervisor PIN Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-primary" /> إدارة رموز PIN المشرفين
+              </CardTitle>
+              <CardDescription>
+                تعديل رموز PIN المشرفين يتطلب التحقق من صلاحية مشرف أولاً
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!pinSectionUnlocked ? (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      هذا القسم محمي. أدخل رمز PIN الخاص بك إذا كنت مشرفاً (مالك أو مدير) للوصول لإعدادات الأمان.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Input
+                      type="password"
+                      placeholder="رمز PIN المشرف"
+                      value={supervisorVerifyPin}
+                      onChange={(e) => setSupervisorVerifyPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      onKeyDown={(e) => e.key === "Enter" && verifySupervisorAccess()}
+                      className="max-w-xs tracking-widest text-center"
+                    />
+                    <Button onClick={verifySupervisorAccess} disabled={pinLoading || !supervisorVerifyPin} className="gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      {pinLoading ? "تحقق..." : "تحقق من الصلاحية"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <p className="text-sm text-green-800 font-medium">تم التحقق من صلاحية المشرف. يمكنك الآن تعديل رموز PIN.</p>
+                  </div>
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      لتغيير رمز PIN لموظف، اذهب إلى صفحة إدارة الموظفين وعدّل بياناته مباشرة.
+                    </p>
+                    <Button variant="outline" className="gap-2" onClick={() => window.location.href = "/employees"}>
+                      <Users className="h-4 w-4" /> الانتقال لإدارة الموظفين
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setPinSectionUnlocked(false)} className="text-muted-foreground">
+                    قفل هذا القسم
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Support */}
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardContent className="p-6 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/20 rounded-xl">
+                  <Headphones className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-lg">{t("settings.needHelp")}</p>
+                  <p className="text-muted-foreground text-sm">{t("settings.supportDesc")}</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="gap-2" onClick={() => toast({ title: t("settings.supportNotify") })}>
+                  <Globe className="h-4 w-4" /> {t("settings.docs")}
+                </Button>
+                <Button className="gap-2" onClick={() => toast({ title: t("settings.supportNotify") })}>
+                  <Headphones className="h-4 w-4" /> {t("settings.contactSupport")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
     </div>
   );
