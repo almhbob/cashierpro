@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: cashierpro
+    env: node
+    plan: free
+    buildCommand: pnpm install && pnpm -r build
+    startCommand: pnpm --filter @workspace/api-server start
+    envVars:
+      - key: PORT
+        value: 10000
