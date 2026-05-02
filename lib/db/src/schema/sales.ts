@@ -10,6 +10,16 @@ export const salesTable = pgTable("sales", {
   amountPaid: doublePrecision("amount_paid").notNull(),
   change: doublePrecision("change").notNull(),
   cashierName: text("cashier_name").notNull(),
+
+  // ZATCA fields
+  invoiceNumber: text("invoice_number"),
+  vatAmount: doublePrecision("vat_amount"),
+  zatcaQr: text("zatca_qr"),
+  zatcaStatus: text("zatca_status").default("disabled"),
+  invoiceHash: text("invoice_hash"),
+  previousInvoiceHash: text("previous_invoice_hash"),
+  icv: integer("icv"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
