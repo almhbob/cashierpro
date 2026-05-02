@@ -6,6 +6,10 @@ import { productsTable } from "./products";
 export const salesTable = pgTable("sales", {
   id: serial("id").primaryKey(),
   tenantId: text("tenant_id"),
+
+  subtotal: doublePrecision("subtotal"),
+  discountAmount: doublePrecision("discount_amount").notNull().default(0),
+
   total: doublePrecision("total").notNull(),
   amountPaid: doublePrecision("amount_paid").notNull(),
   change: doublePrecision("change").notNull(),
