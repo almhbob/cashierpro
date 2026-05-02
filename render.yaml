@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cashierpro
+    name: fatora
     env: node
     plan: free
     buildCommand: pnpm install && pnpm -r build
