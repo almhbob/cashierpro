@@ -4,11 +4,24 @@ import { useGetSale, getGetSaleQueryKey } from "@workspace/api-client-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
-import { ArrowRight, Printer, ReceiptText, Store, User, CalendarClock, BadgeCheck } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarClock,
+  CheckCircle2,
+  Copy,
+  FileDown,
+  Printer,
+  QrCode,
+  ReceiptText,
+  Store,
+  User,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DATE_LOCALES } from "@/i18n";
 
-function InvoiceMetaCard({ icon: Icon, label, value }: { icon: typeof ReceiptText; label: string; value: string }) {
+function InvoiceMetaCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-muted/30 p-4 print:border-black/20 print:bg-white">
       <div className="mb-2 flex items-center gap-2 text-xs font-bold text-muted-foreground print:text-black/60">
@@ -16,6 +29,30 @@ function InvoiceMetaCard({ icon: Icon, label, value }: { icon: typeof ReceiptTex
         <span>{label}</span>
       </div>
       <p className="break-words text-sm font-bold text-foreground print:text-black">{value}</p>
+    </div>
+  );
+}
+
+function makeVerificationCode(parts: Array<string | number | null | undefined>) {
+  const input = parts.filter(Boolean).join("|");
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36).toUpperCase().padStart(8, "0").slice(-8);
+}
+
+function VerificationPattern({ code }: { code: string }) {
+  const bits = Array.from({ length: 49 }, (_, index) => {
+    const char = code.charCodeAt(index % code.length);
+    return (char + index * 7) % 3 !== 0;
+  });
+
+  return (
+    <div className="grid h-32 w-32 shrink-0 grid-cols-7 gap-1 rounded-2xl border bg-white p-3 print:h-28 print:w-28 print:border-black/20">
+      {bits.map((active, index) => (
+        <span key={index} className={active ? "rounded-sm bg-slate-900" : "rounded-sm bg-slate-100 print:bg-white"} />
+      ))}
     </div>
   );
 }
@@ -40,7 +77,51 @@ export default function SaleDetail() {
     });
   }, [dateLocale, sale?.createdAt]);
 
+  const customerName = "عميل نقدي";
   const itemCount = sale?.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) ?? 0;
+  const invoiceUrl = typeof window !== "undefined" ? window.location.href : "";
+  const verificationCode = sale
+    ? makeVerificationCode([sale.id, sale.createdAt, sale.total, sale.amountPaid, sale.cashierName])
+    : "--------";
+
+  const shareText = sale
+    ? [
+        `🧾 فاتورة من ${t("pos.ourStore")}`,
+        `رقم الفاتورة: #${sale.id}`,
+        `رمز التحقق: ${verificationCode}`,
+        `التاريخ: ${invoiceDate}`,
+        `العميل: ${customerName}`,
+        `الإجمالي: ${formatCurrency(sale.total)}`,
+        invoiceUrl ? `رابط الفاتورة: ${invoiceUrl}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
+
+  const printInvoice = (pdfMode = false) => {
+    const previousTitle = document.title;
+    if (pdfMode && sale) {
+      document.title = `CashierPro-Invoice-${sale.id}`;
+    }
+    window.print();
+    window.setTimeout(() => {
+      document.title = previousTitle;
+    }, 500);
+  };
+
+  const shareOrCopyInvoice = async () => {
+    if (!shareText) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `فاتورة #${sale?.id}`, text: shareText, url: invoiceUrl || undefined });
+        return;
+      }
+      await navigator.clipboard.writeText(shareText);
+      window.alert("تم نسخ نص الفاتورة. يمكنك لصقه في واتساب أو أي تطبيق آخر.");
+    } catch {
+      window.alert("لم يتم النسخ تلقائياً. انسخ بيانات الفاتورة يدوياً من الصفحة.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,8 +165,14 @@ export default function SaleDetail() {
                 <ArrowRight className="h-4 w-4" /> {t("sales.back")}
               </Button>
             </Link>
-            <Button onClick={() => window.print()} className="gap-2 shadow-lg shadow-primary/20">
+            <Button onClick={() => printInvoice(false)} className="gap-2 shadow-lg shadow-primary/20">
               <Printer className="h-4 w-4" /> {t("pos.printReceipt")}
+            </Button>
+            <Button onClick={() => printInvoice(true)} variant="secondary" className="gap-2">
+              <FileDown className="h-4 w-4" /> حفظ PDF
+            </Button>
+            <Button onClick={shareOrCopyInvoice} variant="outline" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+              <Copy className="h-4 w-4" /> مشاركة/نسخ
             </Button>
           </div>
         </div>
@@ -117,9 +204,10 @@ export default function SaleDetail() {
           </div>
 
           <CardContent className="space-y-6 p-6 print:p-5">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <InvoiceMetaCard icon={ReceiptText} label={t("pos.invoiceNo")} value={`#${sale.id}`} />
               <InvoiceMetaCard icon={CalendarClock} label={t("pos.dateLabel")} value={invoiceDate} />
+              <InvoiceMetaCard icon={User} label="العميل" value={customerName} />
               <InvoiceMetaCard icon={User} label={t("pos.cashierLabel")} value={sale.cashierName || "—"} />
             </div>
 
@@ -160,6 +248,23 @@ export default function SaleDetail() {
                 <p className="mt-3 text-xs text-muted-foreground print:text-black/60">
                   عدد الأصناف/الكميات: <span className="font-bold text-foreground print:text-black">{itemCount}</span>
                 </p>
+
+                <div className="mt-5 flex flex-col gap-4 rounded-2xl border bg-white p-4 sm:flex-row sm:items-center print:border-black/20">
+                  <VerificationPattern code={verificationCode} />
+                  <div>
+                    <div className="mb-2 flex items-center gap-2 font-black">
+                      <QrCode className="h-5 w-5 text-primary print:text-black" />
+                      <span>رمز تحقق داخلي</span>
+                    </div>
+                    <p className="text-sm leading-7 text-muted-foreground print:text-black/70">
+                      استخدم الرمز لمطابقة بيانات الفاتورة عند المراجعة أو خدمة العملاء.
+                    </p>
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-700 print:border print:border-black/20 print:bg-white print:text-black">
+                      <CheckCircle2 className="h-4 w-4" />
+                      {verificationCode}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-2xl border bg-white p-5 shadow-sm print:border-black/20 print:shadow-none">
