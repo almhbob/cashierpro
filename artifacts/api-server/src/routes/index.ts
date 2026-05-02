@@ -7,6 +7,7 @@ import adminRouter from "./admin";
 import tenantsRouter from "./tenants";
 import superadminRouter from "./superadmin";
 import employeesRouter from "./employees";
+import zatcaRouter from "./zatca";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/admin", adminRouter);
 router.use("/tenants", tenantsRouter);
 router.use("/superadmin", superadminRouter);
 router.use(employeesRouter);
+router.use(zatcaRouter);
 
 export default router;
