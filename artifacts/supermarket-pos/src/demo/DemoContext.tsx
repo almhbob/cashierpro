@@ -6,6 +6,10 @@ import {
 const DEMO_KEY = "cashierpro_demo_mode";
 export const DEMO_ACTIVATION_CODE = "DEMO2025";
 
+function shouldForceDemoMode() {
+  return import.meta.env.VITE_FORCE_DEMO === "true" || !import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+}
+
 interface DemoContextValue {
   isDemoMode: boolean;
   activateDemo: () => void;
@@ -35,18 +39,14 @@ function mockFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Respon
   const path = parsed.pathname;
   const method = (init?.method ?? "GET").toUpperCase();
 
-  if (/\/api\/tenants\/me/.test(path)) {
-    return Promise.resolve(buildMockResponse(DEMO_TENANT));
-  }
+  if (/\/api\/tenants\/me/.test(path)) return Promise.resolve(buildMockResponse(DEMO_TENANT));
 
   if (/\/api\/products$/.test(path) && method === "GET") {
     const q = parsed.searchParams.get("q")?.toLowerCase() ?? "";
     const barcode = parsed.searchParams.get("barcode")?.toLowerCase() ?? "";
     let products = [...DEMO_PRODUCTS];
     if (barcode) products = products.filter(p => p.barcode.includes(barcode));
-    if (q) products = products.filter(p =>
-      p.nameAr.includes(q) || p.name.toLowerCase().includes(q) || p.barcode.includes(q)
-    );
+    if (q) products = products.filter(p => p.nameAr.includes(q) || p.name.toLowerCase().includes(q) || p.barcode.includes(q));
     return Promise.resolve(buildMockResponse(products));
   }
 
@@ -86,32 +86,22 @@ function mockFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Respon
     return Promise.resolve(buildMockResponse({ error: "not found" }, 404));
   }
 
-  if (/\/api\/inventory\/low-stock/.test(path)) {
-    return Promise.resolve(buildMockResponse(DEMO_LOW_STOCK));
-  }
+  if (/\/api\/inventory\/low-stock/.test(path)) return Promise.resolve(buildMockResponse(DEMO_LOW_STOCK));
 
   if (/\/api\/inventory/.test(path)) {
     if (method === "POST") return Promise.resolve(buildMockResponse({ ok: true }));
     return Promise.resolve(buildMockResponse(DEMO_PRODUCTS));
   }
 
-  if (/\/api\/analytics/.test(path)) {
-    return Promise.resolve(buildMockResponse({
-      ...DEMO_ANALYTICS,
-      stats: DEMO_DASHBOARD_STATS,
-    }));
-  }
-
-  if (/\/api\/dashboard/.test(path)) {
-    return Promise.resolve(buildMockResponse(DEMO_DASHBOARD_STATS));
-  }
+  if (/\/api\/analytics/.test(path)) return Promise.resolve(buildMockResponse({ ...DEMO_ANALYTICS, stats: DEMO_DASHBOARD_STATS }));
+  if (/\/api\/dashboard/.test(path)) return Promise.resolve(buildMockResponse(DEMO_DASHBOARD_STATS));
 
   if (/\/api\/settings/.test(path)) {
     if (method === "POST" || method === "PATCH") return Promise.resolve(buildMockResponse({ ok: true }));
     return Promise.resolve(buildMockResponse([
-      { key: "storeName", value: "سوبر ماركت البركة" },
+      { key: "storeName", value: "فوترة" },
       { key: "storePhone", value: "0512345678" },
-      { key: "storeAddress", value: "شارع الملك فهد، الرياض" },
+      { key: "storeAddress", value: "المملكة العربية السعودية" },
       { key: "vatNumber", value: "310123456700003" },
       { key: "vatRate", value: "15" },
       { key: "currency", value: "SAR" },
@@ -119,13 +109,8 @@ function mockFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Respon
     ]));
   }
 
-  if (/\/api\/receive/.test(path) && method === "POST") {
-    return Promise.resolve(buildMockResponse({ ok: true }));
-  }
-
-  if (/\/api\//.test(path)) {
-    return Promise.resolve(buildMockResponse({ ok: true }));
-  }
+  if (/\/api\/receive/.test(path) && method === "POST") return Promise.resolve(buildMockResponse({ ok: true }));
+  if (/\/api\//.test(path)) return Promise.resolve(buildMockResponse({ ok: true }));
 
   return originalFetch!(input, init);
 }
@@ -145,7 +130,7 @@ function uninstallMockFetch() {
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [isDemoMode, setIsDemoMode] = useState(() => localStorage.getItem(DEMO_KEY) === "1");
+  const [isDemoMode, setIsDemoMode] = useState(() => shouldForceDemoMode() || localStorage.getItem(DEMO_KEY) === "1");
 
   useEffect(() => {
     if (isDemoMode) installMockFetch();
@@ -159,6 +144,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   };
 
   const exitDemo = () => {
+    if (shouldForceDemoMode()) return;
     localStorage.removeItem(DEMO_KEY);
     setIsDemoMode(false);
     uninstallMockFetch();
@@ -173,11 +159,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
-  return (
-    <DemoContext.Provider value={{ isDemoMode, activateDemo, exitDemo, tryActivateCode }}>
-      {children}
-    </DemoContext.Provider>
-  );
+  return <DemoContext.Provider value={{ isDemoMode, activateDemo, exitDemo, tryActivateCode }}>{children}</DemoContext.Provider>;
 }
 
 export function useDemo() {
