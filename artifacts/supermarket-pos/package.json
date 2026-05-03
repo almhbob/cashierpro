@@ -8,7 +8,9 @@
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build:desktop": "vite build --config vite.desktop.config.ts"
+    "build:desktop": "vite build --config vite.desktop.config.ts",
+    "firebase:deploy": "firebase deploy",
+    "firebase:preview": "firebase emulators:start"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
