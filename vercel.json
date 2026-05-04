@@ -1,0 +1,11 @@
+{
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter @workspace/supermarket-pos build",
+  "outputDirectory": "artifacts/supermarket-pos/dist/public",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
