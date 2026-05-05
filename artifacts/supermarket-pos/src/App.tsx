@@ -1,441 +1,113 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
-import { useTranslation } from "react-i18next";
-import { LANGUAGES } from "./i18n";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import Settings from "@/pages/Settings";
-import Onboarding from "@/pages/Onboarding";
-import SuperAdmin from "@/pages/SuperAdmin";
-import DevPortal from "@/pages/DevPortal";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { TenantProvider, useTenant } from "@/context/TenantContext";
-import { DemoProvider, useDemo, DEMO_ACTIVATION_CODE } from "@/demo/DemoContext";
-import { DemoBanner } from "@/demo/DemoBanner";
+import { useMemo, useState } from "react";
 
-import Home from "@/pages/Home";
-import Products from "@/pages/Products";
-import Sales from "@/pages/Sales";
-import SaleDetail from "@/pages/SaleDetail";
-import Dashboard from "@/pages/Dashboard";
-import Inventory from "@/pages/Inventory";
-import Analytics from "@/pages/Analytics";
-import Receive from "@/pages/Receive";
-import Employees from "@/pages/Employees";
-
-const queryClient = new QueryClient();
-
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL || undefined;
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-function stripBase(path: string): string {
-  return basePath && path.startsWith(basePath)
-    ? path.slice(basePath.length) || "/"
-    : path;
-}
-
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
-}
-
-const clerkAppearance = {
-  options: {
-    logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
-  },
-  variables: {
-    colorPrimary: "#0d9488",
-    colorBackground: "#f8fafc",
-    colorInputBackground: "#ffffff",
-    colorText: "#0f172a",
-    colorTextSecondary: "#64748b",
-    colorInputText: "#0f172a",
-    colorNeutral: "#94a3b8",
-    borderRadius: "0.75rem",
-    fontFamily: "'Tajawal', 'Cairo', sans-serif",
-    fontFamilyButtons: "'Tajawal', 'Cairo', sans-serif",
-    fontSize: "1rem",
-  },
-  elements: {
-    rootBox: "w-full",
-    cardBox: "shadow-xl border border-slate-200 rounded-2xl w-full overflow-hidden",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: { color: "#0f172a", fontWeight: "700", fontSize: "1.5rem" },
-    headerSubtitle: { color: "#64748b" },
-    socialButtonsBlockButtonText: { color: "#0f172a" },
-    formFieldLabel: { color: "#0f172a" },
-    footerActionLink: { color: "#0d9488" },
-    footerActionText: { color: "#64748b" },
-    dividerText: { color: "#94a3b8" },
-    identityPreviewEditButton: { color: "#0d9488" },
-    formFieldSuccessText: { color: "#059669" },
-    alertText: { color: "#dc2626" },
-    logoBox: "flex justify-center mb-2",
-    logoImage: "h-14 w-14",
-    socialButtonsBlockButton: "border border-slate-200 hover:bg-slate-50",
-    formButtonPrimary: "bg-teal-600 hover:bg-teal-700 text-white",
-    formFieldInput: "border-slate-300 focus:border-teal-500",
-    dividerLine: "bg-slate-200",
-    formFieldRow: "mb-2",
-    main: "p-6",
-  },
-};
-
-const AUTH_FEATURES = [
-  { icon: "🛒", title: "نقطة بيع سريعة", desc: "مسح الباركود وإتمام البيع في ثوانٍ" },
-  { icon: "📦", title: "إدارة المخزون", desc: "تتبع المخزون والتنبيه عند النقص" },
-  { icon: "📊", title: "تقارير وتحليلات", desc: "إحصائيات يومية وشهرية مفصّلة" },
-  { icon: "☁️", title: "نظام سحابي", desc: "بياناتك محفوظة وآمنة دائماً" },
+const plans = [
+  { name: "الأساسية", price: "49", users: "3 مستخدمين", branches: "فرع واحد", invoices: "1,000 فاتورة / شهر" },
+  { name: "الاحترافية", price: "149", users: "20 مستخدم", branches: "5 فروع", invoices: "20,000 فاتورة / شهر", featured: true },
+  { name: "الشركات", price: "399", users: "200 مستخدم", branches: "50 فرع", invoices: "250,000 فاتورة / شهر" },
 ];
 
-function DemoCodeSection() {
-  const { tryActivateCode } = useDemo();
-  const [, setLocation] = useLocation();
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [open, setOpen] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const ok = tryActivateCode(code);
-    if (ok) {
-      setLocation("/");
-    } else {
-      setError("الكود غير صحيح. تواصل مع المندوب للحصول على كود التجربة.");
-      setTimeout(() => setError(""), 3000);
-    }
-  };
-
-  if (!open) {
-    return (
-      <div className="mt-6 text-center">
-        <div className="h-px bg-slate-200 mb-6" />
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="text-sm text-slate-400 hover:text-teal-600 transition-colors font-medium"
-        >
-          🔑 لديك كود تجربة؟ انقر هنا
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-6">
-      <div className="h-px bg-slate-200 mb-6" />
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-        <p className="text-sm font-bold text-amber-800 mb-1">🎯 وضع التجريبي</p>
-        <p className="text-xs text-amber-600 mb-4">أدخل الكود التجريبي لاستعراض النظام كاملاً</p>
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={code}
-            onChange={e => setCode(e.target.value.toUpperCase())}
-            placeholder="مثال: DEMO2025"
-            className="flex-1 text-sm border border-amber-300 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-amber-500 text-slate-800 font-mono tracking-wider"
-            dir="ltr"
-          />
-          <button
-            type="submit"
-            className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
-          >
-            دخول
-          </button>
-        </form>
-        {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-xs text-amber-500 mt-3 hover:text-amber-700"
-        >
-          إلغاء
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AuthLayout({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
-  return (
-    <div className="flex min-h-screen w-full" dir="rtl">
-      {/* Right panel — Branding */}
-      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-14 text-white relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-white/5 rounded-full" />
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <span className="text-3xl">🏪</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight">كاشير برو</h1>
-              <p className="text-teal-200 text-sm">CashierPro</p>
-            </div>
-          </div>
-
-          <h2 className="text-4xl font-black leading-tight mb-4">
-            نظام إدارة المتاجر<br />
-            <span className="text-teal-200">السحابي الأول</span>
-          </h2>
-          <p className="text-teal-100 text-lg leading-relaxed max-w-md">
-            منصة متكاملة لإدارة نقاط البيع والمخزون والتقارير — تناسب المتاجر الصغيرة والكبيرة
-          </p>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-2 gap-4 my-10">
-          {AUTH_FEATURES.map((f) => (
-            <div key={f.title} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/15 transition-colors">
-              <span className="text-3xl mb-3 block">{f.icon}</span>
-              <p className="font-bold text-sm mb-1">{f.title}</p>
-              <p className="text-teal-200 text-xs leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="relative z-10 bg-white/10 rounded-2xl p-6 border border-white/10">
-          <p className="text-sm leading-relaxed text-teal-50 mb-3">
-            "كاشير برو غيّر طريقة إدارة متجرنا كلياً — التقارير اليومية والمخزون أصبحا سهلَين جداً"
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">أح</div>
-            <div>
-              <p className="font-bold text-sm">أحمد الشهري</p>
-              <p className="text-teal-300 text-xs">صاحب سوبر ماركت الرحمة</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Left panel — Form */}
-      <div className="flex-1 flex flex-col justify-center items-center bg-slate-50 p-8 lg:p-14">
-        <div className="w-full max-w-[440px]">
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-xl">
-              <span className="text-xl">🏪</span>
-              <span className="font-bold">كاشير برو</span>
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-3xl font-black text-slate-800 mb-2">{title}</h2>
-            <p className="text-slate-500">{subtitle}</p>
-          </div>
-
-          {children}
-
-          <DemoCodeSection />
-
-          {/* Developer Portal Link */}
-          <div className="mt-6 pt-5 border-t border-slate-200 text-center">
-            <a
-              href={`${basePath}/dev`}
-              className="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-slate-600 transition-colors group"
-            >
-              <span className="text-base">🛠️</span>
-              <span className="group-hover:underline">بوابة المطور</span>
-              <span className="text-slate-300">|</span>
-              <span dir="ltr" className="font-mono text-slate-300 group-hover:text-slate-500">/dev</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SignInPage() {
-  return (
-    <AuthLayout title="مرحباً بعودتك 👋" subtitle="سجّل دخولك للوصول إلى لوحة التحكم">
-      <SignIn
-        routing="path"
-        path={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-up`}
-        appearance={{
-          ...clerkAppearance,
-          elements: {
-            ...clerkAppearance.elements,
-            cardBox: "w-full shadow-none border-0",
-            card: "!shadow-none !border-0 !bg-transparent !p-0",
-            footer: "!shadow-none !border-0 !bg-transparent",
-            main: "!p-0",
-          },
-        }}
-      />
-    </AuthLayout>
-  );
-}
-
-function SignUpPage() {
-  return (
-    <AuthLayout title="ابدأ تجربتك المجانية 🚀" subtitle="أنشئ حسابك وجهّز متجرك في دقيقة واحدة">
-      <SignUp
-        routing="path"
-        path={`${basePath}/sign-up`}
-        signInUrl={`${basePath}/sign-in`}
-        appearance={{
-          ...clerkAppearance,
-          elements: {
-            ...clerkAppearance.elements,
-            cardBox: "w-full shadow-none border-0",
-            card: "!shadow-none !border-0 !bg-transparent !p-0",
-            footer: "!shadow-none !border-0 !bg-transparent",
-            main: "!p-0",
-          },
-        }}
-      />
-    </AuthLayout>
-  );
-}
-
-function DirectionSync() {
-  const { i18n } = useTranslation();
-  useEffect(() => {
-    const lang = LANGUAGES.find((l) => l.code === i18n.language);
-    document.documentElement.dir = lang?.dir ?? "rtl";
-    document.documentElement.lang = i18n.language;
-  }, [i18n.language]);
-  return null;
-}
-
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const qc = useQueryClient();
-  const prevUserIdRef = useRef<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
-        qc.clear();
-      }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, qc]);
-
-  return null;
-}
-
-function AppContent() {
-  const { i18n } = useTranslation();
-  const lang = LANGUAGES.find((l) => l.code === i18n.language);
-  const dir = lang?.dir ?? "rtl";
-  const { tenant, isLoading } = useTenant();
-  const { isDemoMode } = useDemo();
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 to-slate-100">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isDemoMode && tenant?.needsOnboarding) {
-    return <Onboarding />;
-  }
-
-  return (
-    <div className="flex min-h-[100dvh] w-full flex-col" dir={dir}>
-      {isDemoMode && <DemoBanner />}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-auto">
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/products" component={Products} />
-            <Route path="/sales" component={Sales} />
-            <Route path="/sales/:id" component={SaleDetail} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/inventory" component={Inventory} />
-            <Route path="/inventory/low-stock" component={Inventory} />
-            <Route path="/receive" component={Receive} />
-            <Route path="/analytics" component={Analytics} />
-            <Route path="/employees" component={Employees} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/superadmin" component={SuperAdmin} />
-            <Route component={NotFound} />
-          </Switch>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function AppRoutes() {
-  const { isDemoMode } = useDemo();
-
-  if (isDemoMode) {
-    return (
-      <TenantProvider>
-        <AppContent />
-      </TenantProvider>
-    );
-  }
-
-  return (
-    <>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-      <Show when="signed-in">
-        <TenantProvider>
-          <AppContent />
-        </TenantProvider>
-      </Show>
-    </>
-  );
-}
-
-function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
-
-  return (
-    <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
-      routerPush={(to) => setLocation(stripBase(to))}
-      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-    >
-      <QueryClientProvider client={queryClient}>
-        <DirectionSync />
-        <ClerkQueryClientCacheInvalidator />
-        <TooltipProvider>
-          <Switch>
-            <Route path="/dev" component={DevPortal} />
-            <Route path="/sign-in/*?" component={SignInPage} />
-            <Route path="/sign-up/*?" component={SignUpPage} />
-            <Route component={AppRoutes} />
-          </Switch>
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ClerkProvider>
-  );
-}
+const stats = [
+  ["الشركات", "12"],
+  ["الفواتير", "8,420"],
+  ["الإيراد الشهري", "14,900 ر.س"],
+  ["حالة النظام", "نشط"],
+];
 
 function App() {
+  const [active, setActive] = useState("dashboard");
+  const today = useMemo(() => new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" }), []);
+
   return (
-    <WouterRouter base={basePath}>
-      <DemoProvider>
-        <ClerkProviderWithRoutes />
-      </DemoProvider>
-    </WouterRouter>
+    <main dir="rtl" className="min-h-screen bg-slate-950 text-white">
+      <section className="mx-auto flex min-h-screen max-w-7xl flex-col gap-8 px-5 py-8 lg:px-10">
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-500 text-2xl font-black">ف</div>
+            <div>
+              <h1 className="text-2xl font-black">فوترة | Fotr</h1>
+              <p className="text-sm text-slate-300">منصة SaaS لتأجير نظام الفواتير للشركات</p>
+            </div>
+          </div>
+          <div className="rounded-full bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-300">GitHub Pages Demo — {today}</div>
+        </header>
+
+        <section className="grid gap-6 lg:grid-cols-[260px_1fr]">
+          <aside className="rounded-3xl border border-white/10 bg-white/5 p-4">
+            {[
+              ["dashboard", "لوحة التحكم"],
+              ["plans", "باقات التأجير"],
+              ["companies", "إدارة الشركات"],
+              ["zatca", "السعودية / ZATCA"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setActive(id)}
+                className={`mb-2 w-full rounded-2xl px-4 py-3 text-right font-bold transition ${active === id ? "bg-teal-500 text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </aside>
+
+          <section className="space-y-6">
+            {active === "dashboard" && (
+              <>
+                <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-teal-600 to-emerald-700 p-8 shadow-2xl">
+                  <p className="mb-3 text-sm font-bold text-teal-100">جاهز للعرض والبيع</p>
+                  <h2 className="mb-4 text-4xl font-black leading-tight">نظام فوترة متعدد الشركات يعمل الآن بدون Backend</h2>
+                  <p className="max-w-3xl text-lg leading-9 text-teal-50">هذه نسخة معاينة مستقرة على GitHub Pages. تم تعطيل شرط Clerk والاعتماد على الخادم حتى لا تظهر الشاشة البيضاء. الخطوة التالية هي ربط Firestore/Auth لتصبح منصة SaaS كاملة.</p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-4">
+                  {stats.map(([label, value]) => (
+                    <div key={label} className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                      <p className="text-sm text-slate-400">{label}</p>
+                      <p className="mt-2 text-2xl font-black">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {active === "plans" && (
+              <div className="grid gap-4 lg:grid-cols-3">
+                {plans.map((plan) => (
+                  <div key={plan.name} className={`rounded-3xl border p-6 ${plan.featured ? "border-teal-400 bg-teal-500/10" : "border-white/10 bg-white/5"}`}>
+                    {plan.featured && <div className="mb-4 inline-block rounded-full bg-teal-400 px-3 py-1 text-xs font-black text-slate-950">الأكثر طلبًا</div>}
+                    <h3 className="text-2xl font-black">{plan.name}</h3>
+                    <div className="my-5 text-5xl font-black text-teal-300">{plan.price}<span className="text-base text-slate-300"> ر.س / شهر</span></div>
+                    <p className="leading-8 text-slate-300">{plan.users}<br />{plan.branches}<br />{plan.invoices}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {active === "companies" && (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+                <h3 className="mb-4 text-2xl font-black">إدارة الشركات</h3>
+                <div className="space-y-3">
+                  {["شركة النور للتجارة", "سوبرماركت الرحمة", "مؤسسة الرفاعي"].map((name, index) => (
+                    <div key={name} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/5 p-4">
+                      <div>
+                        <p className="font-black">{name}</p>
+                        <p className="text-sm text-slate-400">Tenant #{index + 1} — بيانات معزولة</p>
+                      </div>
+                      <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-bold text-emerald-300">نشط</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {active === "zatca" && (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-6 leading-9 text-slate-200">
+                <h3 className="mb-4 text-2xl font-black text-white">جاهزية السعودية والوضع العالمي</h3>
+                <p>يدعم النظام وضع السعودية بضريبة 15% و QR TLV لمرحلة ZATCA Phase 1، مع وضع عالمي يمكن تشغيله بدون ضريبة أو بضريبة اختيارية للدول الأخرى.</p>
+              </div>
+            )}
+          </section>
+        </section>
+      </section>
+    </main>
   );
 }
 
