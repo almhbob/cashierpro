@@ -40,7 +40,7 @@ async function validateLicenseKey(key: string): Promise<{ valid: boolean; reason
 
 /* GET /api/tenants/me */
 router.get("/me", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const [tenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.id, tenantId)).limit(1);
   if (!tenant) { res.status(404).json({ error: "Tenant not found" }); return; }
 
@@ -55,7 +55,7 @@ router.get("/me", async (req, res) => {
 
 /* PUT /api/tenants/me — update store info */
 router.put("/me", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const { name, nameEn } = req.body ?? {};
   await db.update(tenantsTable)
     .set({ name, nameEn, needsOnboarding: false })
@@ -86,7 +86,7 @@ router.post("/me/check-license", async (req, res) => {
 
 /* POST /api/tenants/me/complete-onboarding */
 router.post("/me/complete-onboarding", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const { name, nameEn, phone, address, vatNumber, licenseKey } = req.body ?? {};
 
   // Validate license key before completing
@@ -144,7 +144,7 @@ router.post("/me/complete-onboarding", async (req, res) => {
 
 /* GET /api/tenants/me/settings */
 router.get("/me/settings", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const rows = await db.select().from(tenantSettingsTable).where(eq(tenantSettingsTable.tenantId, tenantId));
   const map: Record<string, string> = { ...DEFAULT_SETTINGS };
   for (const row of rows) map[row.key] = row.value;
@@ -153,7 +153,7 @@ router.get("/me/settings", async (req, res) => {
 
 /* PUT /api/tenants/me/settings */
 router.put("/me/settings", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const data: Record<string, string> = req.body ?? {};
   for (const [key, value] of Object.entries(data)) {
     await db.insert(tenantSettingsTable).values({ tenantId, key, value })
@@ -164,14 +164,14 @@ router.put("/me/settings", async (req, res) => {
 
 /* GET /api/tenants/me/members */
 router.get("/me/members", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const members = await db.select().from(tenantMembersTable).where(eq(tenantMembersTable.tenantId, tenantId));
   res.json(members);
 });
 
 /* POST /api/tenants/me/upgrade — change plan */
 router.post("/me/upgrade", async (req, res) => {
-  const tenantId = (req as any).tenantId;
+  const tenantId = req.tenantId as string;
   const { plan } = req.body ?? {};
   if (!["starter", "professional", "enterprise"].includes(plan)) {
     res.status(400).json({ error: "Invalid plan" }); return;

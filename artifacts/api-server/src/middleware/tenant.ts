@@ -50,7 +50,7 @@ export async function getOrCreateTenant(clerkUserId: string) {
 }
 
 export async function attachTenant(req: Request, res: Response, next: NextFunction) {
-  const userId = (req as any).userId;
+  const userId = req.userId;
   if (!userId) {
     res.status(401).json({ error: "غير مصرح" });
     return;
@@ -58,8 +58,8 @@ export async function attachTenant(req: Request, res: Response, next: NextFuncti
 
   try {
     const tenant = await getOrCreateTenant(userId);
-    (req as any).tenantId = tenant.id;
-    (req as any).tenant = tenant;
+    req.tenantId = tenant.id;
+    req.tenant = tenant;
     next();
   } catch (err) {
     next(err);

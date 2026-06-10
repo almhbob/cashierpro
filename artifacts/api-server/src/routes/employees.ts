@@ -15,7 +15,8 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 function hashPin(pin: string): string {
-  return crypto.createHash("sha256").update(pin + "pos_salt_2025").digest("hex");
+  const salt = process.env.PIN_SALT ?? "pos_salt_2025";
+  return crypto.createHash("sha256").update(pin + salt).digest("hex");
 }
 
 const router = Router();
@@ -23,7 +24,7 @@ router.use(requireAuth);
 
 /* ─── Employee Statistics (must come before /:id) ─── */
 router.get("/employees/stats", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const employees = await db
     .select()
     .from(employeesTable)
@@ -51,7 +52,7 @@ router.get("/employees/stats", async (req, res): Promise<void> => {
 
 /* ─── Verify Supervisor PIN (must come before /:id) ─── */
 router.post("/employees/verify-supervisor", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const { pin } = req.body;
 
   if (!pin) {
@@ -83,7 +84,7 @@ router.post("/employees/verify-supervisor", async (req, res): Promise<void> => {
 
 /* ─── List Employees ─── */
 router.get("/employees", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const employees = await db
     .select()
     .from(employeesTable)
@@ -96,7 +97,7 @@ router.get("/employees", async (req, res): Promise<void> => {
 
 /* ─── Create Employee ─── */
 router.post("/employees", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const {
     name, nameEn, role, pin, phone, email, salary, salaryType,
     startDate, nationalId, notes, status,
@@ -143,7 +144,7 @@ router.post("/employees", async (req, res): Promise<void> => {
 
 /* ─── Get Single Employee ─── */
 router.get("/employees/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const { id } = req.params;
   const [employee] = await db
     .select()
@@ -159,7 +160,7 @@ router.get("/employees/:id", async (req, res): Promise<void> => {
 
 /* ─── Update Employee ─── */
 router.put("/employees/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const { id } = req.params;
 
   const existing = await db
@@ -212,7 +213,7 @@ router.put("/employees/:id", async (req, res): Promise<void> => {
 
 /* ─── Delete / Deactivate Employee ─── */
 router.delete("/employees/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const { id } = req.params;
   const { permanent } = req.query;
 

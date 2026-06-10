@@ -16,7 +16,7 @@ import { PLAN_LIMITS } from "../middleware/tenant";
 const router: IRouter = Router();
 
 router.get("/products", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const query = ListProductsQueryParams.safeParse(req.query);
   if (!query.success) { res.status(400).json({ error: query.error.message }); return; }
 
@@ -50,8 +50,8 @@ router.get("/products", async (req, res): Promise<void> => {
 });
 
 router.post("/products", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
-  const tenant = (req as any).tenant as typeof tenantsTable.$inferSelect;
+  const tenantId = req.tenantId as string;
+  const tenant = req.tenant!;
 
   const parsed = CreateProductBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
@@ -76,7 +76,7 @@ router.post("/products", async (req, res): Promise<void> => {
 });
 
 router.get("/products/barcode/:barcode", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = GetProductByBarcodeParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
@@ -90,7 +90,7 @@ router.get("/products/barcode/:barcode", async (req, res): Promise<void> => {
 });
 
 router.get("/products/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = GetProductParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
@@ -104,7 +104,7 @@ router.get("/products/:id", async (req, res): Promise<void> => {
 });
 
 router.patch("/products/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = UpdateProductParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
@@ -122,7 +122,7 @@ router.patch("/products/:id", async (req, res): Promise<void> => {
 });
 
 router.delete("/products/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = DeleteProductParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 

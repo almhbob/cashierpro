@@ -74,7 +74,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
 };
 
 router.get("/settings", async (req, res) => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const rows = await db.select().from(tenantSettingsTable).where(eq(tenantSettingsTable.tenantId, tenantId));
   const map: Record<string, string> = { ...DEFAULT_SETTINGS };
   for (const row of rows) map[row.key] = row.value;
@@ -82,7 +82,7 @@ router.get("/settings", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const data: Record<string, string> = req.body ?? {};
   for (const [key, value] of Object.entries(data)) {
     await db

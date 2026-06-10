@@ -38,13 +38,14 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(clerkMiddleware());
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const auth = getAuth(req);
-  const userId = auth?.sessionClaims?.userId || auth?.userId;
+  const userId = (auth?.sessionClaims?.userId as string | undefined) || auth?.userId;
   if (!userId) {
-    return res.status(401).json({ error: "غير مصرح" });
+    res.status(401).json({ error: "غير مصرح" });
+    return;
   }
-  (req as any).userId = userId;
+  req.userId = userId;
   next();
 }
 

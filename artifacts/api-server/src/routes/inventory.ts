@@ -78,7 +78,7 @@ async function buildProductInsights(
 }
 
 router.get("/inventory/insights", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const products = await db.select().from(productsTable).where(eq(productsTable.tenantId, tenantId)).orderBy(productsTable.nameAr);
   const insights = await buildProductInsights(products, tenantId);
   insights.sort((a, b) => b.salesVelocityPerDay - a.salesVelocityPerDay);
@@ -86,7 +86,7 @@ router.get("/inventory/insights", async (req, res): Promise<void> => {
 });
 
 router.get("/inventory/low-stock", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const products = await db
     .select()
     .from(productsTable)
@@ -97,7 +97,7 @@ router.get("/inventory/low-stock", async (req, res): Promise<void> => {
 });
 
 router.get("/inventory/report", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const products = await db.select().from(productsTable).where(eq(productsTable.tenantId, tenantId)).orderBy(productsTable.nameAr);
   const insights = await buildProductInsights(products, tenantId);
 
@@ -116,7 +116,7 @@ router.get("/inventory/report", async (req, res): Promise<void> => {
 });
 
 router.post("/products/:id/receive-stock", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = ReceiveProductStockParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const body = ReceiveProductStockBody.safeParse(req.body);
@@ -133,7 +133,7 @@ router.post("/products/:id/receive-stock", async (req, res): Promise<void> => {
 });
 
 router.post("/inventory/receive-batch", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const body = ReceiveBatchStockBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
 
@@ -174,7 +174,7 @@ router.post("/inventory/receive-batch", async (req, res): Promise<void> => {
 });
 
 router.post("/products/:id/adjust-stock", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = AdjustProductStockParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const body = AdjustProductStockBody.safeParse(req.body);

@@ -17,7 +17,7 @@ import {
 const router: IRouter = Router();
 
 router.get("/sales", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const query = ListSalesQueryParams.safeParse(req.query);
   const limit = query.success && query.data.limit ? query.data.limit : 50;
 
@@ -32,7 +32,7 @@ router.get("/sales", async (req, res): Promise<void> => {
 });
 
 router.post("/sales", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const parsed = CreateSaleBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
@@ -137,7 +137,7 @@ router.post("/sales", async (req, res): Promise<void> => {
 });
 
 router.get("/sales/stats/daily", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -164,7 +164,7 @@ router.get("/sales/stats/daily", async (req, res): Promise<void> => {
 });
 
 router.get("/sales/trends", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   thirtyDaysAgo.setHours(0, 0, 0, 0);
@@ -184,7 +184,7 @@ router.get("/sales/trends", async (req, res): Promise<void> => {
 });
 
 router.get("/sales/:id", async (req, res): Promise<void> => {
-  const tenantId = (req as any).tenantId as string;
+  const tenantId = req.tenantId as string;
   const params = GetSaleParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
