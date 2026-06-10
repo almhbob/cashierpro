@@ -1,9 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { useUser, useClerk } from "@clerk/react";
-import { 
-  Calculator, 
-  PackageSearch, 
-  History, 
+import {
+  Calculator,
+  PackageSearch,
+  History,
   LayoutDashboard,
   ClipboardList,
   LineChart,
@@ -22,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { useTenant, PLAN_LABELS } from "@/context/TenantContext";
+import { useTenant, PLAN_LABELS, type TenantInfo } from "@/context/TenantContext";
 import { useDemo } from "@/demo/DemoContext";
 
 const NAV_GROUPS = [
@@ -56,18 +56,81 @@ const PLAN_COLORS: Record<string, string> = {
   enterprise: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
-export function Sidebar() {
-  const [location] = useLocation();
+// Only mounted when inside ClerkProvider (i.e. !isDemoMode)
+function ClerkUserFooter({ tenant }: { tenant: TenantInfo | null }) {
   const { user } = useUser();
   const { signOut } = useClerk();
+
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      user.username ||
+      user.emailAddresses?.[0]?.emailAddress ||
+      "كاشير"
+    : "...";
+
+  return (
+    <>
+      <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-slate-50">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm bg-teal-100 text-teal-700">
+          {displayName !== "..."
+            ? displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("")
+            : <UserCircle2 className="h-5 w-5 text-teal-600" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-700 truncate">{displayName}</p>
+          <p className="text-xs text-slate-400">{tenant?.name ?? "المتجر"}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <LanguageSwitcher />
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+          title="تسجيل الخروج"
+          onClick={() => signOut({ redirectUrl: window.location.origin + (import.meta.env.BASE_URL || "/") })}
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+    </>
+  );
+}
+
+// Rendered in demo mode — no Clerk hooks
+function DemoUserFooter({ exitDemo }: { exitDemo: () => void }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 px-2 py-2 rounded-xl bg-amber-50">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-amber-100">
+          <FlaskConical className="h-5 w-5 text-amber-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-700 truncate">محمد المندوب</p>
+          <p className="text-xs text-amber-500">وضع تجريبي</p>
+        </div>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full h-9 text-amber-600 hover:bg-amber-50 text-xs font-semibold gap-1.5"
+        onClick={exitDemo}
+      >
+        <LogOut className="h-4 w-4" />
+        إنهاء التجربة
+      </Button>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const [location] = useLocation();
   const { tenant } = useTenant();
   const { isDemoMode, exitDemo } = useDemo();
-
-  const displayName = isDemoMode
-    ? "محمد المندوب"
-    : (user
-        ? [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || user.emailAddresses?.[0]?.emailAddress || "كاشير"
-        : "...");
 
   const plan = tenant?.plan ?? "starter";
   const planLabel = PLAN_LABELS[plan];
@@ -150,7 +213,6 @@ export function Sidebar() {
               الإدارة
             </p>
             <div className="space-y-0.5">
-              {/* Employees - Supervisor Only */}
               <Link href="/employees">
                 <div className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer group",
@@ -205,55 +267,10 @@ export function Sidebar() {
 
       {/* User Footer */}
       <div className="px-4 py-4 border-t border-slate-100 space-y-3">
-        <div className={cn(
-          "flex items-center gap-3 px-2 py-2 rounded-xl",
-          isDemoMode ? "bg-amber-50" : "bg-slate-50"
-        )}>
-          <div className={cn(
-            "w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm",
-            isDemoMode ? "bg-amber-100 text-amber-700" : "bg-teal-100 text-teal-700"
-          )}>
-            {isDemoMode
-              ? <FlaskConical className="h-5 w-5 text-amber-600" />
-              : (displayName !== "..." ? displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("") : <UserCircle2 className="h-5 w-5 text-teal-600" />)
-            }
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-slate-700 truncate">{displayName}</p>
-            <p className={cn("text-xs", isDemoMode ? "text-amber-500" : "text-slate-400")}>
-              {isDemoMode ? "وضع تجريبي" : (tenant?.name ?? "المتجر")}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {!isDemoMode && (
-            <div className="flex-1">
-              <LanguageSwitcher />
-            </div>
-          )}
-          {isDemoMode ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full h-9 text-amber-600 hover:bg-amber-50 text-xs font-semibold gap-1.5"
-              onClick={exitDemo}
-            >
-              <LogOut className="h-4 w-4" />
-              إنهاء التجربة
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 shrink-0"
-              title="تسجيل الخروج"
-              onClick={() => signOut({ redirectUrl: window.location.origin + (import.meta.env.BASE_URL || "/") })}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        {isDemoMode
+          ? <DemoUserFooter exitDemo={exitDemo} />
+          : <ClerkUserFooter tenant={tenant} />
+        }
       </div>
     </aside>
   );
