@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - claude/session-p5payy
   workflow_dispatch:
 
 permissions:
